@@ -38,7 +38,7 @@ Narzêdzia przestrzeni u¿ytkownika dla ndiswrappera.
 
 %package -n kernel-net-ndiswrapper
 Summary:	Loadable kernel module that "wraps around" NDIS drivers
-Summary:	Modu³ j±dra "owijaj±cy" sterowniki NDIS
+Summary(pl):	Modu³ j±dra "owijaj±cy" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
 %{?with_dist_kernel:%requires_releq_kernel_up}
@@ -63,7 +63,7 @@ sterowniki NDIS (API sterowników sieciowych w Windows).
 
 %package -n kernel-smp-net-ndiswrapper
 Summary:	Loadable SMP kernel module that "wraps around" NDIS drivers
-Summary:	Modu³ j±dra SMP "owijaj±cy" sterowniki NDIS
+Summary(pl):	Modu³ j±dra SMP "owijaj±cy" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
 %{?with_dist_kernel:%requires_releq_kernel_smp}
