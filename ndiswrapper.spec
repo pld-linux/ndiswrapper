@@ -50,8 +50,8 @@ Summary(pl):	Modu³ j±dra Linuksa "owijaj±cy" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
 %{?with_dist_kernel:%requires_releq_kernel_up}
-PreReq:		module-init-tools
 Requires(post,postun):	/sbin/depmod
+%{?with_dist_kernel:Requires(postun):	kernel}
 Requires:	dev >= 2.7.7-10
 Requires:	%{name} = %{version}-%{_rel}
 
@@ -79,8 +79,8 @@ Summary(pl):	Modu³ j±dra Linuksa SMP "owijaj±cy" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
 %{?with_dist_kernel:%requires_releq_kernel_smp}
-PreReq:		module-init-tools
 Requires(post,postun):	/sbin/depmod
+%{?with_dist_kernel:Requires(postun):	kernel-smp}
 Requires:	dev >= 2.7.7-10
 Requires:	%{name} = %{version}-%{_rel}
 
@@ -131,9 +131,8 @@ for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}
     %{__make} -C %{_kernelsrcdir} modules \
 	M=$PWD O=$PWD \
 	%{?with_verbose:V=1}
-    mv ndiswrapper.ko ndiswrapper-$cfg.ko
+    mv ndiswrapper{,-$cfg}.ko
 done
-cd -
 %endif
 
 %install
@@ -141,7 +140,8 @@ rm -rf $RPM_BUILD_ROOT
 
 %if %{with userspace}
 install -d $RPM_BUILD_ROOT{/sbin,%{_sysconfdir}/ndiswrapper}
-install utils/{ndiswrapper,loadndisdriver,wlan_radio_averatec_5110hx} $RPM_BUILD_ROOT/sbin
+install utils/{ndiswrapper,loadndisdriver,wlan_radio_averatec_5110hx} \
+	$RPM_BUILD_ROOT/sbin
 %endif
 
 %if %{with kernel}
@@ -153,7 +153,6 @@ install ndiswrapper-%{?with_dist_kernel:up}%{!?with_dist_kernel:nondist}.ko \
 install ndiswrapper-smp.ko \
         $RPM_BUILD_ROOT/lib/modules/%{_kernel_ver}smp/misc/ndiswrapper.ko
 %endif
-cd -
 %endif
 
 %clean
@@ -182,11 +181,11 @@ rm -rf $RPM_BUILD_ROOT
 %if %{with kernel}
 %files -n kernel-net-ndiswrapper
 %defattr(644,root,root,755)
-/lib/modules/%{_kernel_ver}/misc/*.ko*
+/lib/modules/%{_kernel_ver}/misc/ndiswrapper.ko*
 
 %if %{with smp} && %{with dist_kernel}
 %files -n kernel-smp-net-ndiswrapper
 %defattr(644,root,root,755)
-/lib/modules/%{_kernel_ver}smp/misc/*.ko*
+/lib/modules/%{_kernel_ver}smp/misc/ndiswrapper.ko*
 %endif
 %endif
