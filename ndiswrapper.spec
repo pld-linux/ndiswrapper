@@ -115,6 +115,7 @@ Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 %build
 %if %{with userspace}
 %{__make} -C utils
+%endif
 
 cd ./driver
 
@@ -153,7 +154,7 @@ touch include/config/MARKER
 rm -rf $RPM_BUILD_ROOT
 
 %if %{with userspace}
-install -d $RPM_BUILD_ROOT{{/sbin,%{_sysconfdir}/ndiswrapper}
+install -d $RPM_BUILD_ROOT{/sbin,%{_sysconfdir}/ndiswrapper}
 install utils/{ndiswrapper,loadndisdriver,wlan_radio_averatec_5110hx} $RPM_BUILD_ROOT/sbin
 %endif
 
