@@ -11,17 +11,17 @@
 %undefine	with_up
 %endif
 
-%define		_snap	20040417
+%define		_snap	20040427
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
-Version:	0.7
+Version:	0.8
 %define	_rel	0.%{_snap}.1
 Release:	%{_rel}
 License:	GPL
 Group:		Base/Kernel
 Source0:	%{name}-%{version}-%{_snap}.tar.gz
-# Source0-md5:	ca388c2ae4e372c1e967b6f439d0e4ce
+# Source0-md5:	014b42d25353588c4a6ab9eb5c9ca8f2
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with up} || %{with smp}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.0}
