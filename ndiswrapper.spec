@@ -9,22 +9,20 @@
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
-Version:	0.7
-%define	_rel	1
+Version:	0.8
+%define		_rel	1
 Release:	%{_rel}
 License:	GPL
 Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/%{name}/%{name}-%{version}.tar.gz
-# Source0-md5:	55117f1b82f1a4d3ae1cca0b8825a66b
+# Source0-md5:	96c484927b5938b537b09969a6de7a34
 URL:		http://ndiswrapper.sourceforge.net/
-%if %{with kernel} || %{with dist_kernel}
-%{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.0}
+%if %{with kernel}
+%{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.7}
+BuildRequires:	rpmbuild(macros) >= 1.153
 %endif
-BuildRequires:	rpmbuild(macros) >= 1.118
 ExclusiveArch:	%{ix86}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
-
-%define		no_install_post_compress_modules	1
 
 %description
 Some wireless LAN vendors refuse to release hardware specifications or
@@ -109,7 +107,8 @@ Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 
 %build
 %if %{with userspace}
-%{__make} -C utils
+%{__make} -C utils \
+    CFLAGS="%{rpmcflags}"
 %endif
 
 %if %{with kernel}
@@ -123,9 +122,13 @@ for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}
     install -d include/{linux,config}
     ln -sf %{_kernelsrcdir}/config-$cfg .config
     ln -sf %{_kernelsrcdir}/include/linux/autoconf-$cfg.h include/linux/autoconf.h
+    ln -sf %{_kernelsrcdir}/include/asm-%{_target_base_arch} include/asm
     touch include/config/MARKER
-    %{__make} -C %{_kernelsrcdir} clean modules \
+    %{__make} -C %{_kernelsrcdir} clean \
 	RCS_FIND_IGNORE="-name '*.ko' -o" \
+	M=$PWD O=$PWD \
+	%{?with_verbose:V=1}
+    %{__make} -C %{_kernelsrcdir} modules \
 	M=$PWD O=$PWD \
 	%{?with_verbose:V=1}
     mv ndiswrapper.ko ndiswrapper-$cfg.ko
