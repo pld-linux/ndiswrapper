@@ -60,7 +60,7 @@ Group:		Base/Kernel
 PreReq:		module-init-tools
 Requires(post,postun):	/sbin/depmod
 Requires:	dev >= 2.7.7-10
-Requires:	%{name} = %{version}-%{release}
+Requires:	%{name} = %{version}-%{_rel}
 
 %description -n kernel-net-ndiswrapper
 Some wireless LAN vendors refuse to release hardware specifications or
@@ -89,7 +89,7 @@ Group:		Base/Kernel
 PreReq:		module-init-tools
 Requires(post,postun):	/sbin/depmod
 Requires:	dev >= 2.7.7-10
-Requires:	%{name} = %{version}-%{release}
+Requires:	%{name} = %{version}-%{_rel}
 
 %description -n kernel-smp-net-ndiswrapper
 Some wireless LAN vendors refuse to release hardware specifications or
