@@ -10,16 +10,18 @@
 %undefine	with_smp
 %undefine	with_up
 %endif
+
+%define		_snap	20040417
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
-Version:	0.6
-%define	_rel	1
+Version:	0.7
+%define	_rel	0.%{_snap}.1
 Release:	%{_rel}
 License:	GPL
 Group:		Base/Kernel
-Source0:	http://dl.sourceforge.net/%{name}/%{name}-%{version}.tar.gz
-# Source0-md5:	7eee09ad2a869efcff570ef064063654
+Source0:	%{name}-%{version}-%{_snap}.tar.gz
+# Source0-md5:	ca388c2ae4e372c1e967b6f439d0e4ce
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with up} || %{with smp}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.0}
@@ -110,7 +112,7 @@ sterowniki NDIS (API sterowników sieciowych w Windows).
 Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 
 %prep
-%setup -q
+%setup -q -n %{name}-%{version}-%{_snap}
 
 %build
 %if %{with userspace}
