@@ -9,13 +9,14 @@
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
-Version:	0.9
-%define		_rel	2
+Version:	0.11
+%define		_rel	1.1
 Release:	%{_rel}
 License:	GPL
 Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/%{name}/%{name}-%{version}.tar.gz
-# Source0-md5:	21aec47201e5c3e37caa502de76b4b1c
+# Source0-md5:	291794187cd08564118015ae8a0af42e
+Patch0:		%{name}-cvs_update.patch
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.7}
@@ -104,11 +105,11 @@ Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 
 %prep
 %setup -q
+%patch0 -p1
 
 %build
 %if %{with userspace}
-%{__make} -C utils \
-    CFLAGS="%{rpmcflags}"
+CFLAGS="%{rpmcflags}" %{__make} -C utils    
 %endif
 
 %if %{with kernel}
@@ -140,7 +141,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %if %{with userspace}
 install -d $RPM_BUILD_ROOT{/sbin,%{_sysconfdir}/ndiswrapper}
-install utils/{ndiswrapper,loadndisdriver,wlan_radio_averatec_5110hx} \
+install utils/{ndiswrapper,loadndisdriver} \
 	$RPM_BUILD_ROOT/sbin
 %endif
 
