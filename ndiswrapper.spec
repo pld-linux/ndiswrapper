@@ -9,17 +9,16 @@
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
-Version:	0.11
-%define		_rel	1.1
+Version:	0.12rc1
+%define		_rel   1	
 Release:	%{_rel}
 License:	GPL
 Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/%{name}/%{name}-%{version}.tar.gz
-# Source0-md5:	291794187cd08564118015ae8a0af42e
-Patch0:		%{name}-cvs_update.patch
+# Source0-md5:	b97c23f8d79961d1a554d122ad9d1d29
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
-%{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.7}
+%{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.8}
 BuildRequires:	rpmbuild(macros) >= 1.153
 %endif
 ExclusiveArch:	%{ix86}
@@ -105,7 +104,6 @@ Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 
 %prep
 %setup -q
-%patch0 -p1
 
 %build
 %if %{with userspace}
@@ -125,6 +123,7 @@ for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}
     ln -sf %{_kernelsrcdir}/include/linux/autoconf-$cfg.h include/linux/autoconf.h
     ln -sf %{_kernelsrcdir}/include/asm-%{_target_base_arch} include/asm
     touch include/config/MARKER
+    %{__make} gen_exports
     %{__make} -C %{_kernelsrcdir} clean \
 	RCS_FIND_IGNORE="-name '*.ko' -o" \
 	M=$PWD O=$PWD \
