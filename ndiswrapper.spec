@@ -1,3 +1,6 @@
+# TODO:
+#    fix summary/desc for src.rpm
+#
 # Conditional build:
 %bcond_without dist_kernel	# without distribution kernel
 %bcond_without smp		# without smp packages
@@ -5,7 +8,7 @@
 #
 
 Summary:	Userspace tools for ndiswrapper kernel module
-Summary(pl):	Narzêdzia przesrzeni urzytkownika dla ndiswrapper'a
+Summary(pl):	Narzêdzia przestrzeni u¿ytkownika dla ndiswrappera
 Name:		ndiswrapper
 Version:	0.6
 %define	_rel	1
@@ -28,13 +31,14 @@ BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 %define		no_install_post_compress_modules	1
 
 %description
-Userspace tools for ndiswrapper kernel module
+Userspace tools for ndiswrapper kernel module.
 
 %description -l pl
-Narzêdzia przesrzeni urzytkownika dla ndiswrapper'a
+Narzêdzia przestrzeni u¿ytkownika dla ndiswrappera.
 
 %package -n kernel-net-ndiswrapper
-Summary:	Loadable kernel module that "wraps around" NDIS drivers.
+Summary:	Loadable kernel module that "wraps around" NDIS drivers
+Summary:	Modu³ j±dra "owijaj±cy" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
 %{?with_dist_kernel:%requires_releq_kernel_up}
@@ -51,15 +55,15 @@ hardware with Linux by means of a loadable kernel module that "wraps
 around" NDIS (Windows network driver API) drivers.
 
 %description -n kernel-net-ndiswrapper -l pl
-Niektórzy producenci pezprzewodowych kart sieciowych nie udostêpniaj±
+Niektórzy producenci bezprzewodowych kart sieciowych nie udostêpniaj±
 specyfikacji lub sterowników dla swoich produktów, dla systemów innych
-ni¿ Microsoft Windows. Projekt ndiswrapper umo¿liwia urzycie takiego
-sprzêtu w systemie Linux, dostarczaj±c modu³ j±dra który "otacza (??)"
+ni¿ Microsoft Windows. Projekt ndiswrapper umo¿liwia u¿ycie takiego
+sprzêtu w systemie Linux, dostarczaj±c modu³ j±dra który "owija"
 sterowniki NDIS (API sterowników sieciowych w Windows).
 
-
 %package -n kernel-smp-net-ndiswrapper
-Summary:	Loadable kernel module that "wraps around" NDIS drivers.
+Summary:	Loadable SMP kernel module that "wraps around" NDIS drivers
+Summary:	Modu³ j±dra SMP "owijaj±cy" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
 %{?with_dist_kernel:%requires_releq_kernel_smp}
@@ -73,14 +77,16 @@ Some wireless LAN vendors refuse to release hardware specifications or
 drivers for their products for operating systems other than Microsoft
 Windows. The ndiswrapper project makes it possible to use such
 hardware with Linux by means of a loadable kernel module that "wraps
-around" NDIS (Windows network driver API) drivers.
+around" NDIS (Windows network driver API) drivers. This package
+contains SMP kernel module.
 
 %description -n kernel-smp-net-ndiswrapper -l pl
-Niektórzy producenci pezprzewodowych kart sieciowych nie udostêpniaj±
+Niektórzy producenci bezprzewodowych kart sieciowych nie udostêpniaj±
 specyfikacji lub sterowników dla swoich produktów, dla systemów innych
-ni¿ Microsoft Windows. Projekt ndiswrapper umo¿liwia urzycie takiego
-sprzêtu w systemie Linux, dostarczaj±c modu³ j±dra który "otacza (??)"
-sterowniki NDIS (API sterowników sieciowych w Windows).
+ni¿ Microsoft Windows. Projekt ndiswrapper umo¿liwia u¿ycie takiego
+sprzêtu w systemie Linux, dostarczaj±c modu³ j±dra który "owija"
+sterowniki NDIS (API sterowników sieciowych w Windows). Ten pakiet
+zawiera modu³ dla j±dra SMP.
 
 %prep
 %setup -q
