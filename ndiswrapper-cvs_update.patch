@@ -1,0 +1,1921 @@
+diff -u -r ndiswrapper-0.11/ChangeLog ndiswrapper-0.11+cvs/ChangeLog
+--- ndiswrapper-0.11/ChangeLog	2004-10-08 05:46:15.000000000 +0200
++++ ndiswrapper-0.11+cvs/ChangeLog	2004-10-01 05:07:17.000000000 +0200
+@@ -1,4 +1,4 @@
+-Version 0.10 2004-10-08
++Version 0.10 2004-10-xx
+ =======================
+ * Compilation issues with USB are fixed.
+ * WPA issues fixed.
+Tylko w ndiswrapper-0.11+cvs: CVS
+Tylko w ndiswrapper-0.11+cvs/debian: compat
+Tylko w ndiswrapper-0.11+cvs/debian: CVS
+Tylko w ndiswrapper-0.11+cvs/driver: CVS
+diff -u -r ndiswrapper-0.11/driver/hal.c ndiswrapper-0.11+cvs/driver/hal.c
+--- ndiswrapper-0.11/driver/hal.c	2004-10-08 05:46:15.000000000 +0200
++++ ndiswrapper-0.11+cvs/driver/hal.c	2004-10-16 07:24:58.000000000 +0200
+@@ -77,76 +77,88 @@
+ 	udelay(usecs);
+ }
+ 
+-
+-_FASTCALL static KIRQL
+-KfAcquireSpinLock(int dummy1, int dummy2, KSPIN_LOCK *lock)
++_FASTCALL KIRQL
++KfRaiseIrql(int dummy1, int dummy2, KIRQL newirql)
+ {
+ 	KIRQL irql;
+ 
+-	TRACEENTER4("lock = %p, *lock = %p", lock, (void *)lock);
++	TRACEENTER4("irql = %d", newirql);
++
+ 	irql = KeGetCurrentIrql();
++	if (newirql < irql) {
++		ERROR("invalid irql %d", irql);
++		TRACEEXIT4(return PASSIVE_LEVEL);
++	}
++
++	if (irql < DISPATCH_LEVEL)
++		local_bh_disable();
++
++	TRACEEXIT4(return irql);
++}
++	
++_FASTCALL void
++KfLowerIrql(int dummy1, int dummy2, KIRQL oldirql)
++{
++	TRACEENTER4("irql = %d", oldirql);
++
++	if (KeGetCurrentIrql() != DISPATCH_LEVEL) {
++		ERROR("invalid irql %d", oldirql);
++		TRACEEXIT4(return);
++	}
++
++	if (oldirql < DISPATCH_LEVEL)
++		local_bh_enable();
++
++	TRACEEXIT4(return);
++}
++
++_FASTCALL KIRQL
++KfAcquireSpinLock(int dummy1, int dummy2, KSPIN_LOCK *lock)
++{
++	TRACEENTER4("lock = %p", lock);
+ 
+ 	if (!lock) {
+ 		ERROR("%s", "invalid lock");
+-		return irql;
++		TRACEEXIT4(return PASSIVE_LEVEL);
+ 	}
+ 
+-	if (!*lock)
+-	{
++	if (!*lock) {
+ 		printk(KERN_WARNING "Buggy Windows driver trying to use "
+ 		       "uninitialized lock. Trying to recover...");
+ 		KeInitializeSpinLock(lock);
+ 		if (*lock)
+ 			printk(KERN_WARNING "ok\n");
+-		else
+-		{
++		else {
+ 			printk(KERN_WARNING "failed\n");
+ 			BUG();
+ 		}
+-	}
++	} else if ((*lock)->magic != WRAPPER_SPIN_LOCK_MAGIC)
++		ERROR("uninitialized spinlock %p", *lock);
+ 
+-	wrap_spin_lock((struct wrap_spinlock *)*lock);
+-	return irql;
++	wrap_spin_lock(*lock);
++	
++	TRACEEXIT4(return (*lock)->irql);
+ }
+ 
+-_FASTCALL static void
+-KfReleaseSpinLock(int dummy, KIRQL newirql, KSPIN_LOCK *lock)
++_FASTCALL void
++KfReleaseSpinLock(int dummy, KIRQL oldirql, KSPIN_LOCK *lock)
+ {
+-	TRACEENTER4("lock = %p, *lock = %p", lock, (void *)*lock);
++	struct wrap_spinlock *wrap_lock;
+ 
+-	if (!lock || !*lock)
+-	{
++	TRACEENTER4("lock = %p, irql = %d", lock, oldirql);
++
++	if (!lock || !*lock) {
+ 		ERROR("invalid spin lock %p", lock);
+-		return;
++		TRACEEXIT4(return);
+ 	}
++	
++	wrap_lock = *lock;
++	if (oldirql != wrap_lock->irql)
++		ERROR("invlid irql %d", oldirql);
+ 
+-	wrap_spin_unlock((struct wrap_spinlock *)*lock);
+-}
++	wrap_spin_unlock(wrap_lock);
+ 
+-STDCALL static unsigned char
+-KfRaiseIrql(unsigned char irql)
+-{
+-	if (irql != PASSIVE_LEVEL) {
+-		ERROR("%s", "can't raise irql");
+-		return PASSIVE_LEVEL;
+-	}
+-	if (in_atomic() || irqs_disabled())
+-		return DISPATCH_LEVEL;
+-	else {
+-		preempt_enable();
+-		return PASSIVE_LEVEL;
+-	}
+-}
+-	
+-STDCALL static void
+-KfLowerIrql(unsigned char old_irql)
+-{
+-	if (old_irql != PASSIVE_LEVEL) {
+-		ERROR("%s", "can't lower irql");
+-		return;
+-	}
+-	preempt_disable();
+-	return;
++	TRACEEXIT4(return);
+ }
+ 
+ struct wrap_func hal_wrap_funcs[] =
+diff -u -r ndiswrapper-0.11/driver/iw_ndis.c ndiswrapper-0.11+cvs/driver/iw_ndis.c
+--- ndiswrapper-0.11/driver/iw_ndis.c	2004-10-08 05:46:15.000000000 +0200
++++ ndiswrapper-0.11+cvs/driver/iw_ndis.c	2004-10-15 08:17:06.000000000 +0200
+@@ -551,17 +551,17 @@
+ 
+ 	index = (wrqu->data.flags & IW_ENCODE_INDEX);
+ 	DBGTRACE2("index = %u", index);
+-	if (index && (index <= 0 || index > MAX_ENCR_KEYS))
+-	{
+-		WARNING("encryption index out of range (%u)", index);
+-		TRACEEXIT1(return -EINVAL);
+-	}
+-
+ 	if (index == 0)
+ 		index = encr_info->active;
+ 	else	
+ 		index--;
+ 
++	if (index < 0 || index >= MAX_ENCR_KEYS)
++	{
++		WARNING("encryption index out of range (%u)", index);
++		TRACEEXIT1(return -EINVAL);
++	}
++
+ 	if (index != encr_info->active)
+ 	{
+ 		if (encr_info->keys[index].length > 0)
+@@ -628,17 +628,18 @@
+ 	TRACEENTER1("%s", "");
+ 	index = (wrqu->encoding.flags & IW_ENCODE_INDEX);
+ 	DBGTRACE2("index = %u", index);
+-	if (index < 0 || index >= MAX_ENCR_KEYS)
+-	{
+-		WARNING("encryption index out of range (%u)", index);
+-		TRACEEXIT1(return -EINVAL);
+-	}
+ 
+ 	if (index == 0)
+ 		index = encr_info->active;
+ 	else	
+ 		index--;
+ 
++	if (index < 0 || index >= MAX_ENCR_KEYS)
++	{
++		WARNING("encryption index out of range (%u)", index);
++		TRACEEXIT1(return -EINVAL);
++	}
++
+ 	/* remove key if disabled */
+ 	if (wrqu->data.flags & IW_ENCODE_DISABLED)
+ 	{
+diff -u -r ndiswrapper-0.11/driver/misc_funcs.c ndiswrapper-0.11+cvs/driver/misc_funcs.c
+--- ndiswrapper-0.11/driver/misc_funcs.c	2004-10-08 05:46:15.000000000 +0200
++++ ndiswrapper-0.11+cvs/driver/misc_funcs.c	2004-10-24 10:35:52.000000000 +0200
+@@ -97,20 +97,17 @@
+ 	STDCALL void (*func)(void *res1, void *data, void *res3, void *res4);
+ 
+ 	TRACEENTER5("%s", "");
+-	if (!timer)
+-	{
+-		ERROR("%s", "invalid timer");
+-		return;
+-	}
+-	kdpc = timer->kdpc;
+ #ifdef DEBUG_TIMER
++	BUG_ON(timer == NULL);
+ 	BUG_ON(timer->wrapper_timer_magic != WRAPPER_TIMER_MAGIC);
+-	BUG_ON(kdpc == NULL);
++	BUG_ON(timer->kdpc == NULL);
+ #endif
++
++	spin_lock(&timer->lock);
++
++	kdpc = timer->kdpc;
+ 	func = kdpc->func;
+ 
+-	if (!timer->active)
+-		return;
+ 	if (timer->repeat)
+ 	{
+ 		timer->timer.expires = jiffies + timer->repeat;
+@@ -119,6 +116,8 @@
+ 	else
+ 		timer->active = 0;
+ 
++	spin_unlock(&timer->lock);
++
+ 	if (func)
+ 		func(kdpc, kdpc->ctx, kdpc->arg1, kdpc->arg2);
+ 	TRACEEXIT5(return);
+@@ -148,15 +147,20 @@
+ 	wrapper_timer->wrapper_timer_magic = WRAPPER_TIMER_MAGIC;
+ #endif
+ 	ktimer->wrapper_timer = wrapper_timer;
+-	if (handle)
++	if (handle) {
++		spin_lock_bh(&ndis_handle->timers_lock);
+ 		list_add(&wrapper_timer->list, &ndis_handle->timers);
++		spin_unlock_bh(&ndis_handle->timers_lock);
++	}
++	spin_lock_init(&wrapper_timer->lock);
+ 	DBGTRACE4("added timer %p, wrapper_timer->list %p\n",
+ 		  wrapper_timer, &wrapper_timer->list);
+ 	TRACEEXIT5(return);
+ }
+ 
+ int wrapper_set_timer(struct wrapper_timer *timer,
+-                      unsigned long expires, unsigned long repeat)
++                      unsigned long expires, unsigned long repeat,
++                      struct kdpc *kdpc)
+ {
+ 	TRACEENTER5("%s", "");
+ 	if (!timer)
+@@ -173,13 +177,18 @@
+ 		timer->wrapper_timer_magic = WRAPPER_TIMER_MAGIC;
+ 	}
+ #endif
++
++	spin_lock_bh(&timer->lock);
+ 	timer->repeat = repeat;
++	if (kdpc)
++		timer->kdpc = kdpc;
+ 
+ 	if (timer->active)
+ 	{
+ 		DBGTRACE4("modifying timer %p to %lu, %lu",
+ 			  timer, expires, repeat);
+ 		mod_timer(&timer->timer, expires);
++		spin_unlock_bh(&timer->lock);
+ 		TRACEEXIT5(return 1);
+ 	}
+ 	else
+@@ -189,6 +198,7 @@
+ 		timer->timer.expires = expires;
+ 		add_timer(&timer->timer);
+ 		timer->active = 1;
++		spin_unlock_bh(&timer->lock);
+ 		TRACEEXIT5(return 0);
+ 	}
+ }
+@@ -202,10 +212,12 @@
+ 		return;
+ 	}
+ 
++	spin_lock_bh(&timer->lock);
+ 	if (!timer->active)
+ 	{
+ 		*canceled = 0;
+-		return;
++		spin_unlock_bh(&timer->lock);
++		TRACEEXIT5(return);
+ 	}
+ #ifdef DEBUG_TIMER
+ 	DBGTRACE4("canceling timer %p", timer);
+@@ -213,11 +225,68 @@
+ #endif
+ 
+ 	timer->repeat = 0;
+-	*canceled = del_timer_sync(&(timer->timer));
+-	timer->active = 0;
++	*canceled = del_timer(&timer->timer);
++	spin_unlock_bh(&timer->lock);
+ 	TRACEEXIT5(return);
+ }
+ 
++#if 0
++void
++wrapper_init_event(struct dispatch_header *header, int type, int state)
++{
++	TRACEENTER3("header = %p, type = %d, state = %d",
++		    header, type, state);
++	wrap_spin_lock(&dispatch_event_lock);
++	header->type = type;
++	header->signal_state = state;
++	wrap_spin_unlock(&dispatch_event_lock);
++	return;
++}
++
++void
++wrapper_set_event(struct dispatch_header *header)
++{
++	TRACEENTER3("%p", header);
++	header->signal_state = 1;
++	/* FIXME: check if it is synchronization event or not; for
++	 * synchronization events, only one process must be woken up.
++	 * Or is it guaranteed that for synchronization events, the
++	 * header is unique? In that case, we can ignore this check.
++	 */
++	wake_up(&dispatch_event_wq);
++	DBGTRACE3("woken up %p", header);
++	if (header->type == SYNCHRONIZATION_EVENT)
++		header->signal_state = 0;
++}
++
++void
++wrapper_reset_event(struct dispatch_header *header)
++{
++	header->signal_state = 0;
++}
++
++unsigned int
++wrapper_wait_event(struct dispatch_header *header, int ms)
++{
++	TRACEENTER3("%p, ms = %u", header, ms);
++
++	if (header->signal_state)
++		TRACEEXIT3(return header->signal_state);
++
++	if (ms == 0)
++		wait_event_interruptible(dispatch_event_wq,
++					 (header->signal_state == 1));
++	else
++		wait_event_interruptible_timeout(dispatch_event_wq,
++						 (header->signal_state == 1),
++						 (ms * HZ)/1000);
++	DBGTRACE3("%p, type = %d woke up (%ld)",
++		  header, header->type, header->signal_state);
++
++	TRACEEXIT3(return header->signal_state);
++}
++#endif
++
+ NOREGPARM int wrap_sprintf(char *buf, const char *format, ...)
+ {
+ 	va_list args;
+@@ -629,6 +698,8 @@
+ 	while (1)
+ 	{
+ 		struct ndis_packet * packet = NULL;
++		struct miniport_char *miniport;
++		miniport = &handle->driver->miniport_char;
+ 
+ 		wrap_spin_lock(&handle->recycle_packets_lock);
+ 		if (list_empty(&handle->recycle_packets))
+@@ -638,11 +709,15 @@
+ 		}
+ 		else
+ 		{
+-			packet = (struct ndis_packet*) handle->recycle_packets.next;
++			packet = (struct ndis_packet*)
++				handle->recycle_packets.next;
+ 
+ 			list_del(handle->recycle_packets.next);
+ 			DBGTRACE3("Picking packet at %p!", packet);
+-			packet = (struct ndis_packet*) ((char*)packet - ((char*) &packet->recycle_list - (char*) &packet->nr_pages));
++			packet = (struct ndis_packet*)
++				((char*)packet -
++				 ((char*) &packet->recycle_list -
++				  (char*) &packet->nr_pages));
+ 		}
+ 
+ 		wrap_spin_unlock(&handle->recycle_packets_lock);
+@@ -651,11 +726,22 @@
+ 			break;
+ 
+ 		packet->status = NDIS_STATUS_SUCCESS;
+-		handle->driver->miniport_char.return_packet(handle->adapter_ctx, packet);
++		miniport->return_packet(handle->adapter_ctx, packet);
+ 	}
+ 	TRACEEXIT3(return);
+ }
+ 
++u64 ticks_1601(void)
++{
++	struct timeval now;
++	u64 ticks;
++
++	do_gettimeofday(&now);
++	ticks = (u64) now.tv_sec * TICKSPERSEC;
++	ticks += now.tv_usec * 10 + TICKS_1601_TO_1970;
++	return ticks;
++}
++
+ int getSp(void)
+ {
+ 	volatile int i;
+diff -u -r ndiswrapper-0.11/driver/ndis.c ndiswrapper-0.11+cvs/driver/ndis.c
+--- ndiswrapper-0.11/driver/ndis.c	2004-10-08 05:46:15.000000000 +0200
++++ ndiswrapper-0.11+cvs/driver/ndis.c	2004-10-24 10:35:52.000000000 +0200
+@@ -31,8 +31,6 @@
+ struct wrap_spinlock atomic_lock;
+ struct wrap_spinlock cancel_lock;
+ 
+-DECLARE_WAIT_QUEUE_HEAD(event_wq);
+-
+ static struct work_struct ndis_work;
+ static struct list_head ndis_work_list;
+ static struct wrap_spinlock ndis_work_list_lock;
+@@ -887,7 +885,7 @@
+ 		return;
+ 	}
+ #ifdef CONFIG_DEBUG_SPINLOCK
+-	if (lock->wrap_spinlock->magic != NDIS_SPIN_LOCK_MAGIC)
++	if (lock->wrap_spinlock->magic != WRAPPER_SPIN_LOCK_MAGIC)
+ 		ERROR("uninitliazed lock %p (%u)",
+ 		      lock->wrap_spinlock, lock->wrap_spinlock->magic);
+ 	else
+@@ -1262,7 +1260,7 @@
+ 	unsigned long expires = jiffies + (ms * HZ) / 1000;
+ 
+ 	TRACEENTER4("%p, %u", timer_handle, ms);
+-	wrapper_set_timer(timer_handle->ktimer.wrapper_timer, expires, 0);
++	wrapper_set_timer(timer_handle->ktimer.wrapper_timer, expires, 0, NULL);
+ 	TRACEEXIT4(return);
+ }
+ 
+@@ -1274,7 +1272,8 @@
+ 	unsigned long repeat = ms * HZ / 1000;
+ 
+ 	TRACEENTER4("%p, %u", timer_handle, ms);
+-	wrapper_set_timer(timer_handle->ktimer.wrapper_timer, expires, repeat);
++	wrapper_set_timer(timer_handle->ktimer.wrapper_timer,
++	                  expires, repeat, NULL);
+ 	TRACEEXIT4(return);
+ }
+ 
+@@ -1862,16 +1861,10 @@
+ 	TRACEEXIT4(return);
+ }
+ 
+-STDCALL static void
++STDCALL void
+ NdisGetCurrentSystemTime(u64 *time)
+ {
+-	struct timeval now;
+-	u64 t;
+-
+-	do_gettimeofday(&now);
+-	t = (u64) now.tv_sec * TICKSPERSEC;
+-	t += now.tv_usec * 10 + TICKS_1601_TO_1970;
+-	*time = t;
++	*time = ticks_1601();
+ }
+ 
+ STDCALL static unsigned int
+@@ -1987,7 +1980,7 @@
+ {
+ 	TRACEENTER3("%s", "");
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+-        return dma_get_cache_alignment();
++	return dma_get_cache_alignment();
+ #else
+ 	return L1_CACHE_BYTES;
+ #endif
+@@ -2009,51 +2002,39 @@
+ }
+ 
+ STDCALL static void
+-NdisInitializeEvent(struct ndis_event *event)
++NdisInitializeEvent(struct ndis_event *ndis_event)
+ {
+-	TRACEENTER3("%08x", (int)event);
+-	event->event.header.type = NOTIFICATION_EVENT;
+-	event->event.header.signal_state = 0;
++	TRACEENTER3("%p", ndis_event);
++	KeInitializeEvent(&ndis_event->kevent, NOTIFICATION_EVENT, 0);
+ }
+ 
+ STDCALL int
+-NdisWaitEvent(struct ndis_event *event, unsigned int timeout)
++NdisWaitEvent(struct ndis_event *ndis_event, unsigned int ms)
+ {
++	s64 ticks;
+ 	int res;
+ 
+-	TRACEENTER3("%p %d", event, timeout);
+-	if (event->event.header.signal_state)
+-		TRACEEXIT3(return 1);
+-	if (!timeout) {
+-		wait_event_interruptible(event_wq,
+-			event->event.header.signal_state == 1);
+-		return 1;
+-	}
+-
+-	res = wait_event_interruptible_timeout(event_wq,
+-		event->event.header.signal_state == 1, (timeout * HZ)/1000);
+-	DBGTRACE3("%p Woke up (%ld)", event,
+-		event->event.header.signal_state);
+-
+-	if (event->event.header.signal_state == 1)
+-		TRACEEXIT3(return 1);
+-
+-	TRACEEXIT3(return 0);
++	TRACEENTER3("%p %u", ndis_event, ms);
++	ticks = ms * 10000;
++	res = KeWaitForSingleObject(&ndis_event->kevent, 0, 0, 0, &ticks);
++	if (res == STATUS_SUCCESS)
++		TRACEEXIT3(return TRUE);
++	else
++		TRACEEXIT3(return FALSE);
+ }
+ 
+ STDCALL void
+-NdisSetEvent(struct ndis_event *event)
++NdisSetEvent(struct ndis_event *ndis_event)
+ {
+-	TRACEENTER3("%p", event);
+-	event->event.header.signal_state = 1;
+-	wake_up_interruptible(&event_wq);
++	TRACEENTER3("%p", ndis_event);
++	KeSetEvent(&ndis_event->kevent, 0, 0);
+ }
+ 
+ STDCALL static void
+-NdisResetEvent(struct ndis_event *event)
++NdisResetEvent(struct ndis_event *ndis_event)
+ {
+-	TRACEENTER3("%p", event);
+-	event->event.header.signal_state = 0;
++	TRACEENTER3("%p", ndis_event);
++	KeResetEvent(&ndis_event->kevent);
+ }
+ 
+ /* called via function pointer */
+diff -u -r ndiswrapper-0.11/driver/ndis.h ndiswrapper-0.11+cvs/driver/ndis.h
+--- ndiswrapper-0.11/driver/ndis.h	2004-10-08 05:46:15.000000000 +0200
++++ ndiswrapper-0.11+cvs/driver/ndis.h	2004-10-23 10:37:48.000000000 +0200
+@@ -15,7 +15,7 @@
+ #ifndef NDIS_H
+ #define NDIS_H
+ 
+-#include "ntoskernel.h"
++#include "ndiswrapper.h"
+ #include "wrapper.h"
+ #include "pe_loader.h"
+ 
+@@ -545,6 +545,8 @@
+ 	WRAPPER_LINK_STATUS,
+ 	SET_OP_MODE,
+ 	SET_ESSID,
++	/* do not work when this is set */
++	SHUTDOWN
+ };
+ 
+ enum ndis_attributes
+@@ -768,6 +770,7 @@
+ 
+ 	/* List of initialized timers */
+ 	struct list_head timers;
++	spinlock_t timers_lock;
+ 
+ 	struct proc_dir_entry *procfs_iface;
+ 
+@@ -816,7 +819,7 @@
+ 
+ struct ndis_event
+ {
+-	struct kevent event;
++	struct kevent kevent;
+ };
+ 
+ #define NDIS_MAX_RATES 16
+diff -u -r ndiswrapper-0.11/driver/ndiswrapper.h ndiswrapper-0.11+cvs/driver/ndiswrapper.h
+--- ndiswrapper-0.11/driver/ndiswrapper.h	2004-10-08 05:46:15.000000000 +0200
++++ ndiswrapper-0.11+cvs/driver/ndiswrapper.h	2004-10-24 20:59:00.000000000 +0200
+@@ -16,23 +16,7 @@
+ #ifndef NDISWRAPPER_H
+ #define NDISWRAPPER_H
+ 
+-#include <linux/types.h>
+-#include <linux/timer.h>
+-
+-#include <linux/netdevice.h>
+-#include <linux/wireless.h>
+-#include <linux/pci.h>
+-#include <linux/wait.h>
+-#include <linux/pm.h>
+-#include <linux/delay.h>
+-#include <linux/mm.h>
+-#include <linux/random.h>
+-#include <linux/ctype.h>
+-#include <linux/usb.h>
+-#include <asm/mman.h>
+-#include <asm/atomic.h>
+-
+-#include <linux/version.h>
++#include "ntoskernel.h"
+ 
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,7)
+ #include <linux/kthread.h>
+@@ -44,11 +28,6 @@
+ 
+ #define DRV_NAME "ndiswrapper"
+ 
+-#define STDCALL __attribute__((__stdcall__, regparm(0)))
+-#define NOREGPARM __attribute__((regparm(0)))
+-#define packed __attribute__((packed))
+-#define _FASTCALL __attribute__((__stdcall__)) __attribute__((regparm (3)))
+-
+ /* Workqueue / task queue backwards compatibility stuff */
+ #if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,41)
+ #include <linux/workqueue.h>
+@@ -80,6 +59,12 @@
+ #include <linux/tqueue.h>
+ #define work_struct tq_struct
+ #define INIT_WORK INIT_TQUEUE
++#define DECLARE_WORK(n, f, d) struct tq_struct n = { \
++	list: LIST_HEAD_INIT(n.list), \
++	sync: 0, \
++	routine: f, \
++	data: d \
++}
+ #define schedule_work schedule_task
+ #define flush_scheduled_work flush_scheduled_tasks
+ typedef task_queue workqueue;
+@@ -110,8 +95,35 @@
+ #endif
+ 
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+-#undef __wait_event_interruptible_timeout
+-#undef wait_event_interruptible_timeout
++
++#ifndef preempt_enable
++#define preempt_enable()  (void)0
++#endif
++#ifndef preempt_disable
++#define preempt_disable() (void)0
++#endif
++
++#ifndef container_of
++#define container_of(ptr, type, member) ({			\
++	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
++	(type *)( (char *)__mptr - offsetof(type,member) );})
++#endif
++
++#ifndef virt_addr_valid
++#define virt_addr_valid(addr) VALID_PAGE(virt_to_page(addr))
++#endif
++
++#define WRAP_ALLOC_URB(a, b)  usb_alloc_urb(a)
++#define WRAP_SUBMIT_URB(a, b) usb_submit_urb(a)
++
++#else // LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
++
++#define WRAP_ALLOC_URB(a, b)  usb_alloc_urb(a, b)
++#define WRAP_SUBMIT_URB(a, b) usb_submit_urb(a, b)
++
++#endif // LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
++
++#ifndef __wait_event_interruptible_timeout
+ #define __wait_event_interruptible_timeout(wq, condition, ret)		\
+ do {									\
+ 	wait_queue_t __wait;						\
+@@ -134,7 +146,9 @@
+ 	current->state = TASK_RUNNING;					\
+ 	remove_wait_queue(&wq, &__wait);				\
+ } while (0)
++#endif
+ 
++#ifndef wait_event_interruptible_timeout
+ #define wait_event_interruptible_timeout(wq, condition, timeout)	\
+ ({									\
+ 	long __ret = timeout;						\
+@@ -142,34 +156,38 @@
+ 		__wait_event_interruptible_timeout(wq, condition, __ret); \
+ 	__ret;								\
+ })
+-
+-#ifndef preempt_enable
+-#define preempt_enable()  (void)0
+-#endif
+-#ifndef preempt_disable
+-#define preempt_disable() (void)0
+ #endif
+ 
+-#ifndef container_of
+-#define container_of(ptr, type, member) ({			\
+-	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
+-	(type *)( (char *)__mptr - offsetof(type,member) );})
++#ifndef __wait_event_timeout
++#define __wait_event_timeout(wq, condition, ret)			\
++do {									\
++	wait_queue_t __wait;						\
++	init_waitqueue_entry(&__wait, current);				\
++									\
++	add_wait_queue(&wq, &__wait);					\
++	for (;;) {							\
++		set_current_state(TASK_UNINTERRUPTIBLE);		\
++		if (condition)						\
++			break;						\
++		ret = schedule_timeout(ret);				\
++		if (!ret)						\
++			break;						\
++	}								\
++	current->state = TASK_RUNNING;					\
++	remove_wait_queue(&wq, &__wait);				\
++} while (0)
+ #endif
+ 
+-#ifndef virt_addr_valid
+-#define virt_addr_valid(addr) VALID_PAGE(virt_to_page(addr))
++#ifndef wait_event_timeout
++#define wait_event_timeout(wq, condition, timeout)			\
++({									\
++	long __ret = timeout;						\
++	if (!(condition))						\
++		__wait_event_timeout(wq, condition, __ret);		\
++	 __ret;								\
++})
+ #endif
+ 
+-#define WRAP_ALLOC_URB(a, b)  usb_alloc_urb(a)
+-#define WRAP_SUBMIT_URB(a, b) usb_submit_urb(a)
+-
+-#else // LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+-
+-#define WRAP_ALLOC_URB(a, b)  usb_alloc_urb(a, b)
+-#define WRAP_SUBMIT_URB(a, b) usb_submit_urb(a, b)
+-
+-#endif // LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+-
+ /* Interrupt backwards compatibility stuff */
+ #include <linux/interrupt.h>
+ #ifndef IRQ_HANDLED
+@@ -184,6 +202,7 @@
+ 
+ #define KMALLOC_THRESHOLD 131072
+ 
++/* TICK is 100ns */
+ #define TICKSPERSEC             10000000
+ #define SECSPERDAY              86400
+ 
+@@ -281,27 +300,6 @@
+ #define TRACEEXIT4(stmt) do { DBGTRACE4("%s", "Exit"); stmt; } while(0)
+ #define TRACEEXIT5(stmt) do { DBGTRACE5("%s", "Exit"); stmt; } while(0)
+ 
+-#define MAC2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
+-#define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
+-
+-#define NDIS_SPIN_LOCK_MAGIC 137
+-
+-struct packed wrap_spinlock
+-{
+-	spinlock_t spinlock;
+-	unsigned short magic;
+-	unsigned short in_bh;
+-	/* atomic_t in_use; */
+-};
+-
+-static inline void wrap_spin_lock_init(struct wrap_spinlock *lock)
+-{
+-	TRACEENTER5("lock: %p", lock);
+-	spin_lock_init(&lock->spinlock);
+-	lock->magic = NDIS_SPIN_LOCK_MAGIC;
+-	/* atomic_set(&lock->in_use, 0); */
+-	TRACEEXIT5(return);
+-}
+ #if defined DEBUG
+ #define ASSERT(expr) \
+ if(!(expr)) { \
+@@ -311,47 +309,8 @@
+ #define ASSERT(expr)
+ #endif
+ 
+-static inline void wrap_spin_lock(struct wrap_spinlock *lock)
+-{
+-	TRACEENTER5("lock: %p", lock);
+-	/*
+-	if (lock->magic != NDIS_SPIN_LOCK_MAGIC)
+-		WARNING("lock %p is not initlialized (%d)", lock, lock->magic);
+-	if (atomic_read(&lock->in_use) == 1)
+-		WARNING("lock %p is already locked", lock);
+-	*/
+-
+-	if (in_atomic() || irqs_disabled())
+-	{
+-		spin_lock(&lock->spinlock);
+-		lock->in_bh = 0;
+-	}
+-	else
+-	{
+-		spin_lock_bh(&lock->spinlock);
+-		lock->in_bh = 1;
+-	}
+-	/* atomic_set(&lock->in_use, 1); */
+-	TRACEEXIT5(return);
+-}
++#define MAC2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
++#define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
+ 
+-static inline void wrap_spin_unlock(struct wrap_spinlock *lock)
+-{
+-	TRACEENTER5("lock: %p", lock);
+-	/*
+-	if (lock->magic != NDIS_SPIN_LOCK_MAGIC)
+-		WARNING("lock %p is not initlialized (%d)", lock, lock->magic);
+-	if (atomic_read(&lock->in_use) == 0)
+-		WARNING("lock %p was not locked", lock);
+-
+-	atomic_set(&lock->in_use, 0);
+-	*/
+-
+-	if (lock->in_bh)
+-		spin_unlock_bh(&lock->spinlock);
+-	else
+-		spin_unlock(&lock->spinlock);
+-	TRACEEXIT5(return);
+-}
+ 
+ #endif // NDISWRAPPER_H
+diff -u -r ndiswrapper-0.11/driver/ntoskernel.c ndiswrapper-0.11+cvs/driver/ntoskernel.c
+--- ndiswrapper-0.11/driver/ntoskernel.c	2004-10-08 05:46:15.000000000 +0200
++++ ndiswrapper-0.11+cvs/driver/ntoskernel.c	2004-10-24 20:59:00.000000000 +0200
+@@ -13,13 +13,16 @@
+  *
+  */
+ 
+-#include "ntoskernel.h"
++#include "ndiswrapper.h"
+ #include "wrapper.h"
+ #include "ndis.h"
+ #include "usb.h"
+ #include <linux/time.h>
+ 
+ unsigned long long KeTickCount;
++DECLARE_WAIT_QUEUE_HEAD(dispatch_event_wq);
++struct wrap_spinlock dispatch_event_lock;
++
+ STDCALL static void
+ WRITE_REGISTER_ULONG(void *reg, unsigned int val)
+ {
+@@ -69,9 +72,7 @@
+ 	else
+ 		expires = HZ * (due_time / 10000000);
+ 	repeat = HZ * (period / 1000);
+-	if (kdpc)
+-		wrapper_set_timer_dpc(ktimer->wrapper_timer, kdpc);
+-	return wrapper_set_timer(ktimer->wrapper_timer, expires, repeat);
++	return wrapper_set_timer(ktimer->wrapper_timer, expires, repeat, kdpc);
+ }
+ 
+ STDCALL static int
+@@ -103,7 +104,7 @@
+ STDCALL void
+ KeInitializeSpinLock(KSPIN_LOCK *lock)
+ {
+-	struct wrap_spinlock *spin_lock;
++	struct wrap_spinlock *wrap_lock;
+ 
+ 	if (!lock)
+ 	{
+@@ -111,57 +112,27 @@
+ 		return;
+ 	}
+ 
+-	spin_lock = wrap_kmalloc(sizeof(struct wrap_spinlock), GFP_ATOMIC);
+-	if (!spin_lock)
++	wrap_lock = wrap_kmalloc(sizeof(struct wrap_spinlock), GFP_ATOMIC);
++	if (!wrap_lock)
+ 		ERROR("%s", "Couldn't allocate space for spinlock");
+ 	else
+ 	{
+-		DBGTRACE4("allocated spinlock %p", spin_lock);
+-		wrap_spin_lock_init(spin_lock);
+-		*lock = (KSPIN_LOCK)spin_lock;
++		DBGTRACE4("allocated spinlock %p", wrap_lock);
++		wrap_spin_lock_init(wrap_lock);
++		*lock = wrap_lock;
+ 	}
+ }
+ 
+-STDCALL static void
+-KeAcquireSpinLock(KSPIN_LOCK *lock, KIRQL *oldirql)
++STDCALL void
++KeAcquireSpinLock(KSPIN_LOCK *lock, KIRQL *irql)
+ {
+-	TRACEENTER4("lock = %p, *lock = %p", lock, (void *)*lock);
+-
+-	if (!lock)
+-	{
+-		ERROR("%s", "invalid lock");
+-		return;
+-	}
+-
+-	if (!*lock)
+-	{
+-		printk(KERN_WARNING "Buggy Windows driver trying to use "
+-		       "uninitialized lock. Trying to recover...");
+-		KeInitializeSpinLock(lock);
+-		if (*lock)
+-			printk(KERN_WARNING "ok\n");
+-		else
+-		{
+-			printk(KERN_WARNING "failed\n");
+-			BUG();
+-		}
+-	}
+-	wrap_spin_lock((struct wrap_spinlock *)*lock);
+-	TRACEEXIT4(return);
++	*irql = KfAcquireSpinLock(0, 0, lock);
+ }
+ 
+-STDCALL static void
+-KeReleaseSpinLock(KSPIN_LOCK *lock, KIRQL newirql)
++STDCALL void
++KeReleaseSpinLock(KSPIN_LOCK *lock, KIRQL oldirql)
+ {
+-	TRACEENTER4("lock = %p, *lock = %p", lock, (void *)*lock);
+-
+-	if (!lock || !*lock)
+-	{
+-		ERROR("invalid spin lock %p", lock);
+-		return;
+-	}
+-
+-	wrap_spin_unlock((struct wrap_spinlock *)*lock);
++	KfReleaseSpinLock(0, oldirql, lock);
+ }
+ 
+ _FASTCALL static struct slist_entry *
+@@ -321,75 +292,139 @@
+ 	return 0;
+ }
+ 
+-STDCALL static void
+-KeInitializeEvent(struct kevent *event, int event_type, int state)
+-{
+-	TRACEENTER("event = %p, event_type = %d, state = %d",
+-		event, event_type, state);
+-	event->header.type         = event_type;
+-	event->header.signal_state = state;
+-}
+-
+-STDCALL static long
+-KeSetEvent(struct kevent *event, int incr, int wait)
++STDCALL void
++KeInitializeEvent(struct kevent *kevent, int type, int state)
+ {
+-	TRACEENTER("event = %p, incr = %d, wait = %d", event, incr, wait);
+-	NdisSetEvent((struct ndis_event *)event);
+-	return STATUS_SUCCESS;
++	TRACEENTER3("event = %p, type = %d, state = %d",
++		    kevent, type, state);
++	wrap_spin_lock(&dispatch_event_lock);
++	kevent->header.type = type;
++	kevent->header.signal_state = state;
++	wrap_spin_unlock(&dispatch_event_lock);
++}
++
++STDCALL long
++KeSetEvent(struct kevent *kevent, int incr, int wait)
++{
++	long old_state = kevent->header.signal_state;
++
++	TRACEENTER3("event = %p, type = %d, wait = %d",
++		    kevent, kevent->header.type, wait);
++	if (wait == TRUE)
++		WARNING("wait = %d, not yet implemented", wait);
++
++	if (old_state == 0) {
++		wrap_spin_lock(&dispatch_event_lock);
++		kevent->header.signal_state = 1;
++		if (kevent->header.type == SYNCHRONIZATION_EVENT)
++			wake_up_nr(&dispatch_event_wq, 1);
++		else
++			wake_up_all(&dispatch_event_wq);
++		DBGTRACE3("woken up %p", kevent);
++		if (kevent->header.type == SYNCHRONIZATION_EVENT)
++			kevent->header.signal_state = 0;
++		/* NDIS seems to say the event should be cleared after waking
++		 * up, but drivers seem to not work that way! It is not clear
++		 * if NDIS says the event should be cleared here or will
++		 * be cleared later
++		 */
++		/* But if called from NdisSetEvent, the event should be left
++		 * in signaled state */
++		/* kevent->header.signal_state = 0; */
++		wrap_spin_unlock(&dispatch_event_lock);
++	}
++	TRACEEXIT3(return old_state);
+ }
+ 
+ STDCALL static void
+-KeClearEvent(struct kevent *event)
++KeClearEvent(struct kevent *kevent)
+ {
+-	TRACEENTER("event = %p", event);
+-	event->header.signal_state = 0;
++	TRACEENTER3("event = %p", kevent);
++	wrap_spin_lock(&dispatch_event_lock);
++	kevent->header.signal_state = 0;
++	wrap_spin_unlock(&dispatch_event_lock);
+ }
+ 
+-STDCALL static long
+-KeResetEvent(struct kevent *event)
++STDCALL long
++KeResetEvent(struct kevent *kevent)
+ {
+-	long old_state = event->header.signal_state;
++	long old_state;
++
++	TRACEENTER3("event = %p", kevent);
+ 
+-	TRACEENTER("event = %p", event);
+-	event->header.signal_state = 0;
+-	return old_state;
++	wrap_spin_lock(&dispatch_event_lock);
++	old_state = kevent->header.signal_state;
++	kevent->header.signal_state = 0;
++	wrap_spin_unlock(&dispatch_event_lock);
++
++	TRACEEXIT3(return old_state);
+ }
+ 
+-STDCALL static unsigned int
++STDCALL unsigned int
+ KeWaitForSingleObject(void *object, unsigned int reason,
+ 		      unsigned int waitmode, unsigned short alertable,
+ 		      s64 *timeout)
+ {
+-	unsigned int ndis_timeout = 0;
++	struct kevent *kevent = (struct kevent *)object;
++	struct dispatch_header *header = &kevent->header;
++	unsigned int ms;
++	int res;
+ 
+ 	/* Note: for now, object can only point to an event */
+-	TRACEENTER3("object = %p, reason = %u, waitmode = %u, alertable = %u,"
+-		" timeout = %p", object, reason, waitmode, alertable,
++	TRACEENTER2("event = %p, reason = %u, waitmode = %u, alertable = %u,"
++		" timeout = %p", kevent, reason, waitmode, alertable,
+ 		timeout);
+ 
++	DBGTRACE2("object type = %d, size = %d", header->type, header->size);
++
++	if (header->signal_state)
++		TRACEEXIT3(return STATUS_SUCCESS);
++
+ 	if (timeout) {
+-		DBGTRACE3("timeout = %Ld", *timeout);
+-		if (*timeout > 0) {
+-			ndis_timeout = (*timeout) / 10000;
+-		} else if (*timeout == 0) {
+-			if (((struct kevent *)object)->header.signal_state)
+-				TRACEEXIT3(return STATUS_SUCCESS);
+-			else
+-				TRACEEXIT3(return STATUS_TIMEOUT);
+-		} else {
+-			unsigned int msecs = (-(*timeout)) / 10000;
+-			ndis_timeout = 1000 / HZ * (jiffies +
+-						    (HZ / 1000 * msecs));
++		DBGTRACE2("timeout = %Ld", *timeout);
++		if (*timeout == 0)
++			TRACEEXIT2(return STATUS_TIMEOUT);
++		else if (*timeout > 0)
++			ms = ((*timeout) - ticks_1601()) / 10000;
++		else
++			ms = (-(*timeout)) / 10000;
++	} else
++		ms = 0;
++
++	DBGTRACE2("wait ms = %u", ms);
++
++	if (ms == 0) {
++		if (alertable)
++			res = wait_event_interruptible(
++				dispatch_event_wq,
++				(header->signal_state == 1));
++		else {
++			wait_event(dispatch_event_wq,
++				   (header->signal_state == 1));
++			res = 0;
+ 		}
++	} else {
++		if (alertable)
++			res = wait_event_interruptible_timeout(
++				dispatch_event_wq,
++				(header->signal_state == 1),
++				(ms * HZ)/1000);
++		else
++			res = wait_event_timeout(
++				dispatch_event_wq,
++				(header->signal_state == 1),
++				(ms * HZ)/1000);
+ 	}
+ 
+-	DBGTRACE3("ndis_timeout = %u", ndis_timeout);
+-	if (!NdisWaitEvent(object, ndis_timeout))
+-		TRACEEXIT3(return STATUS_TIMEOUT);
+-
+-	if (((struct kevent *)object)->header.type == SYNCHRONIZATION_EVENT)
+-		((struct kevent *)object)->header.signal_state = 0;
+-	TRACEEXIT3(return STATUS_SUCCESS);
++	DBGTRACE3("%p, type = %d woke up (%ld)",
++		  kevent, header->type, header->signal_state);
++	if (res > 0)
++		TRACEEXIT2(return STATUS_TIMEOUT);
++	else if (res < 0)
++		TRACEEXIT2(return STATUS_ALERTED);
++	else
++		TRACEEXIT2(return STATUS_SUCCESS);
++
+ }
+ 
+ STDCALL static void
+@@ -519,53 +554,66 @@
+ 	TRACEEXIT3(return irp);
+ }
+ 
+-_FASTCALL static void 
++_FASTCALL void
+ IofCompleteRequest(int dummy, char prio_boost, struct irp *irp)
+ {
+-	UNIMPL();
++	struct io_stack_location *stack = irp->current_stack_location-1;
++
++	TRACEENTER3("irp = %p", irp);
++
++	if (irp->user_status) {
++		irp->user_status->status = irp->io_status.status;
++		irp->user_status->status_info = irp->io_status.status_info;
++	}
++
++	if ((stack->completion_handler) &&
++	    ((((irp->io_status.status == 0) &&
++	       (stack->control & CALL_ON_SUCCESS)) ||
++	      ((irp->io_status.status == STATUS_CANCELLED) &&
++	       (stack->control & CALL_ON_CANCEL)) ||
++	      ((irp->io_status.status != 0) &&
++	       (stack->control & CALL_ON_ERROR))))) {
++		DBGTRACE3("calling %p", stack->completion_handler);
++
++		if (stack->completion_handler(stack->dev_obj, irp,
++		                              stack->handler_arg) ==
++		    STATUS_MORE_PROCESSING_REQUIRED)
++			TRACEEXIT3(return);
++	}
++
++	if (irp->user_event) {
++		DBGTRACE3("setting event %p", irp->user_event);
++		KeSetEvent(irp->user_event, 0, 0);
++	}
++
++	/* To-Do: what about IRP_DEALLOCATE_BUFFER...? */
++	DBGTRACE("freeing irp %p", irp);
++	kfree(irp);
++	TRACEEXIT3(return);
+ }
+ 
+ STDCALL unsigned char
+ IoCancelIrp(struct irp *irp)
+ {
+ 	struct io_stack_location *stack = irp->current_stack_location-1;
+-	int free_irp = 1;
+ 	void (*cancel_routine)(struct device_object *, struct irp *) STDCALL;
+ 
+-	TRACEENTER3("irp = %p", irp);
++	TRACEENTER2("irp = %p", irp);
+ 
+ 	wrap_spin_lock(&cancel_lock);
++	irp->cancel_irql = cancel_lock.irql;
+ 	irp->pending_returned = 1;
+ 	irp->cancel = 1;
+-	cancel_routine = irp->cancel_routine;
+-	irp->cancel_routine = NULL;
+-	wrap_spin_unlock(&cancel_lock);
+-
+-	if (!cancel_routine)
+-		TRACEEXIT3(return 0);
++	cancel_routine = xchg(&irp->cancel_routine, NULL);
+ 
+-	cancel_routine(stack->dev_obj, irp);
+-
+-	if ((stack->completion_handler) &&
+-	    (stack->control & CALL_ON_CANCEL)) {
+-		DBGTRACE3("calling %p", stack->completion_handler);
+-		local_bh_disable();
+-		preempt_disable();
+-		if (stack->completion_handler(stack->dev_obj, irp,
+-		                              stack->handler_arg) ==
+-		    STATUS_MORE_PROCESSING_REQUIRED)
+-			free_irp = 0;
+-		preempt_enable();
+-		local_bh_enable();
++	if (!cancel_routine) {
++		wrap_spin_unlock(&cancel_lock);
++		TRACEEXIT2(return 0);
+ 	}
+ 
+-	/* To-Do: what about IRP_DEALLOCATE_BUFFER...? */
+-	if (free_irp) {
+-		DBGTRACE("freeing irp %p", irp);
+-		kfree(irp);
+-	}
++	cancel_routine(stack->dev_obj, irp);
+ 
+-	TRACEEXIT3(return 1);
++	TRACEEXIT2(return 1);
+ }
+ 
+ STDCALL static void IoFreeIrp(struct irp *irp)
+@@ -629,7 +677,7 @@
+ 
+ 		if (irp->user_event) {
+ 			DBGTRACE3("setting event %p", irp->user_event);
+-			NdisSetEvent((struct ndis_event *)irp->user_event);
++			KeSetEvent(irp->user_event, 0, 0);
+ 		}
+ 	}
+ 
+@@ -689,7 +737,11 @@
+ 	*phandle = find_task_by_pid(pid);
+ 	DBGTRACE2("*phandle = %p", *phandle);
+ #else
+-	*phandle = kthread_run(kthread_trampoline, ctx, "ndiswrapper");
++	*phandle = kthread_run(kthread_trampoline, ctx,
++#ifdef CONFIG_SOFTWARE_SUSPEND2
++			       0,
++#endif
++			       "ndiswrapper");
+ 	DBGTRACE2("*phandle = %p", *phandle);
+ 	if (IS_ERR(*phandle)) {
+ 		kfree(ctx);
+@@ -725,10 +777,8 @@
+ 	return old_prio;
+ }
+ 
+-DECLARE_WAIT_QUEUE_HEAD(thread_wq);
+-
+ STDCALL static int
+-KeDelayExecutionThread(KPROCESSOR_MODE wait_mode, BOOLEAN alterable,
++KeDelayExecutionThread(KPROCESSOR_MODE wait_mode, BOOLEAN alertable,
+ 		       u64 *interval)
+ {
+ 	int res;
+@@ -743,8 +793,14 @@
+ 	else
+ 		timeout = HZ * (*interval) / 10000;
+ 
+-	res = wait_event_interruptible_timeout(thread_wq, 1, timeout);
+-	if (res < 0)
++	if (alertable)
++		set_current_state(TASK_INTERRUPTIBLE);
++	else
++		set_current_state(TASK_UNINTERRUPTIBLE);
++
++	res = schedule_timeout(timeout);
++
++	if (res > 0)
+ 		TRACEEXIT2(return STATUS_ALERTED);
+ 	else
+ 		TRACEEXIT2(return STATUS_SUCCESS);
+@@ -828,7 +884,7 @@
+ 			TRACEEXIT1(return STATUS_SUCCESS);
+ 		}
+ 		break;
+-		
++
+ 	case DEVPROP_FRIENDLYNAME:
+ 		if (buffer_len > 0 && buffer) {
+ 			ansi.len = snprintf(buf, sizeof(buf), "%d",
+diff -u -r ndiswrapper-0.11/driver/ntoskernel.h ndiswrapper-0.11+cvs/driver/ntoskernel.h
+--- ndiswrapper-0.11/driver/ntoskernel.h	2004-10-08 05:46:15.000000000 +0200
++++ ndiswrapper-0.11+cvs/driver/ntoskernel.h	2004-10-24 20:59:00.000000000 +0200
+@@ -14,28 +14,53 @@
+ #ifndef _NTOSKERNEL_H_
+ #define _NTOSKERNEL_H_
+ 
+-#include "ndiswrapper.h"
++#include <linux/types.h>
++#include <linux/timer.h>
++
++#include <linux/netdevice.h>
++#include <linux/wireless.h>
++#include <linux/pci.h>
++#include <linux/wait.h>
++#include <linux/pm.h>
++#include <linux/delay.h>
++#include <linux/mm.h>
++#include <linux/random.h>
++#include <linux/ctype.h>
++#include <linux/usb.h>
++#include <asm/mman.h>
++#include <asm/atomic.h>
++
++#include <linux/version.h>
++
++#define STDCALL __attribute__((__stdcall__, regparm(0)))
++#define NOREGPARM __attribute__((regparm(0)))
++#define packed __attribute__((packed))
++#define _FASTCALL __attribute__((__stdcall__)) __attribute__((regparm (3)))
+ 
+ #define MAX_STR_LEN 512
+ 
++#define TRUE 1
++#define FALSE 0
++
+ #define PASSIVE_LEVEL 0
+ #define DISPATCH_LEVEL 2
+ 
+-#define STATUS_SUCCESS			0
+-#define STATUS_TIMEOUT			0x00000102
+-#define STATUS_PENDING			0x00000103
+-#define STATUS_FAILURE			0xC0000001
+-#define STATUS_MORE_PROCESSING_REQUIRED	0xC0000016
+-#define STATUS_BUFFER_TOO_SMALL		0xC0000023
+-#define STATUS_RESOURCES		0xC000009A
+-#define STATUS_NOT_SUPPORTED		0xC00000BB
+-#define STATUS_INVALID_PARAMETER_2	0xC00000F0
+-#define STATUS_ALERTED			0x00000101
+-
+-#define IS_PENDING			0x01
+-#define CALL_ON_CANCEL			0x20
+-#define CALL_ON_SUCCESS			0x40
+-#define CALL_ON_ERROR			0x80
++#define STATUS_SUCCESS                  0
++#define STATUS_ALERTED                  0x00000101
++#define STATUS_TIMEOUT                  0x00000102
++#define STATUS_PENDING                  0x00000103
++#define STATUS_FAILURE                  0xC0000001
++#define STATUS_MORE_PROCESSING_REQUIRED 0xC0000016
++#define STATUS_BUFFER_TOO_SMALL         0xC0000023
++#define STATUS_RESOURCES                0xC000009A
++#define STATUS_NOT_SUPPORTED            0xC00000BB
++#define STATUS_INVALID_PARAMETER_2      0xC00000F0
++#define STATUS_CANCELLED                0xC0000120
++
++#define IS_PENDING                      0x01
++#define CALL_ON_CANCEL                  0x20
++#define CALL_ON_SUCCESS                 0x40
++#define CALL_ON_ERROR                   0x80
+ 
+ 
+ struct slist_entry
+@@ -53,8 +78,16 @@
+ 	} list;
+ };
+ 
+-typedef unsigned long *KSPIN_LOCK;
+ typedef unsigned char KIRQL;
++struct packed wrap_spinlock
++{
++	spinlock_t spinlock;
++	unsigned short magic;
++	KIRQL irql;
++};
++
++/* typedef unsigned long *KSPIN_LOCK; */
++typedef struct wrap_spinlock *KSPIN_LOCK;
+ typedef char KPROCESSOR_MODE;
+ typedef unsigned char BOOLEAN;
+ 
+@@ -89,6 +122,7 @@
+ 	int active;
+ 	struct ktimer *ktimer;
+ 	struct kdpc *kdpc;
++	spinlock_t lock;
+ };
+ 
+ struct packed kdpc
+@@ -217,6 +251,17 @@
+ 	struct io_stack_location *current_stack_location;
+ 
+ 	void *fill5[3];
++
++	/* ndiswrapper extension */
++	struct list_head cancel_list_entry;
++};
++
++enum nt_obj_type
++{
++	NT_OBJ_EVENT,
++	NT_OBJ_MUTEX,
++	NT_OBJ_THREAD,
++	NT_OBJ_TIMER,
+ };
+ 
+ struct ktimer
+@@ -230,6 +275,17 @@
+ 	long period;
+ };
+ 
++struct kmutex
++{
++	struct dispatch_header dispatch_header;
++	/* struct list_entry list_entry */
++	unsigned int count;
++	unsigned int dummy;
++	void *owner_thread;
++	BOOLEAN abandoned;
++	unsigned char apc_disable;
++};
++
+ #define NOTIFICATION_TIMER 1
+ 
+ struct kevent
+@@ -288,14 +344,48 @@
+ 	DEVPROP_REMOVAL_POLICY,
+ };
+ 
+-void wrapper_timer_handler(unsigned long data);
+ void wrapper_init_timer(struct ktimer *ktimer, void *handle);
+ int wrapper_set_timer(struct wrapper_timer *wrapper_timer,
+-                      unsigned long expires, unsigned long repeat);
++                      unsigned long expires, unsigned long repeat,
++                      struct kdpc *kdpc);
+ void wrapper_cancel_timer(struct wrapper_timer *wrapper_timer, char *canceled);
++STDCALL void KeInitializeEvent(struct kevent *kevent, int type, int state);
++STDCALL long KeSetEvent(struct kevent *kevent, int incr, int wait);
++STDCALL long KeResetEvent(struct kevent *kevent);
++STDCALL unsigned int KeWaitForSingleObject(void *object, unsigned int reason,
++					   unsigned int waitmode,
++					   unsigned short alertable,
++					   s64 *timeout);
++u64 ticks_1601(void);
+ 
+ STDCALL KIRQL KeGetCurrentIrql(void);
+ STDCALL void KeInitializeSpinLock(KSPIN_LOCK *lock);
++_FASTCALL KIRQL KfAcquireSpinLock(int dummy1, int dummy2, KSPIN_LOCK *lock);
++_FASTCALL void KfReleaseSpinLock(int dummy, KIRQL oldirql, KSPIN_LOCK *lock);
++STDCALL void KeAcquireSpinLock(KSPIN_LOCK *lock, KIRQL *irql);
++STDCALL void KeReleaseSpinLock(KSPIN_LOCK *lock, KIRQL oldirql);
++_FASTCALL KIRQL KfRaiseIrql(int dummy1, int dummy2, KIRQL newirql);
++_FASTCALL void KfLowerIrql(int dummy1, int dummy2, KIRQL oldirql);
++_FASTCALL void IofCompleteRequest(int dummy, char prio_boost, struct irp *irp);
++
++#define WRAPPER_SPIN_LOCK_MAGIC 137
++
++static inline void wrap_spin_lock_init(struct wrap_spinlock *lock)
++{
++	spin_lock_init(&lock->spinlock);
++	lock->magic = WRAPPER_SPIN_LOCK_MAGIC;
++}
++static inline void wrap_spin_lock(struct wrap_spinlock *lock)
++{
++	lock->irql = KfRaiseIrql(0, 0, DISPATCH_LEVEL);
++	spin_lock(&lock->spinlock);
++}
++
++static inline void wrap_spin_unlock(struct wrap_spinlock *lock)
++{
++	spin_unlock(&lock->spinlock);
++	KfLowerIrql(0, 0, lock->irql);
++}
+ 
+ static inline void wrapper_set_timer_dpc(struct wrapper_timer *wrapper_timer,
+                                          struct kdpc *kdpc)
+diff -u -r ndiswrapper-0.11/driver/usb.c ndiswrapper-0.11+cvs/driver/usb.c
+--- ndiswrapper-0.11/driver/usb.c	2004-10-08 05:46:16.000000000 +0200
++++ ndiswrapper-0.11+cvs/driver/usb.c	2004-10-23 10:37:48.000000000 +0200
+@@ -20,11 +20,17 @@
+ LIST_HEAD(completed_irps);
+ static spinlock_t completed_irps_lock = SPIN_LOCK_UNLOCKED;
+ 
+-
+ void usb_transfer_complete_tasklet(unsigned long dummy);
+ DECLARE_TASKLET(completed_irps_tasklet, usb_transfer_complete_tasklet, 0);
+ 
+ 
++LIST_HEAD(canceled_irps);
++static spinlock_t canceled_irps_lock = SPIN_LOCK_UNLOCKED;
++
++void usb_cancel_worker(void *dummy);
++DECLARE_WORK(cancel_usb_irp_work, usb_cancel_worker, 0);
++
++
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+ void usb_transfer_complete(struct urb *urb, struct pt_regs *regs)
+ #else
+@@ -36,20 +42,16 @@
+ 
+ 	TRACEENTER3("urb = %p", urb);
+ 
+-	wrap_spin_lock(&cancel_lock);
+-	irp->cancel_routine = NULL;
+-	if (irp->cancel)
+-		wrap_spin_unlock(&cancel_lock);
+-	else {
+-		wrap_spin_unlock(&cancel_lock);
+-
+-		spin_lock(&completed_irps_lock);
+-		list_add_tail((struct list_head *)&irp->list_entry,
+-			&completed_irps);
+-		spin_unlock(&completed_irps_lock);
++	/* canceled? */
++	if ((urb->status == -ENOENT) || (urb->status == -ECONNRESET))
++		TRACEEXIT2(return);
++
++	spin_lock(&completed_irps_lock);
++	list_add_tail((struct list_head *)&irp->list_entry, &completed_irps);
++	spin_unlock(&completed_irps_lock);
+ 
+-		tasklet_schedule(&completed_irps_tasklet);
+-	}
++	tasklet_schedule(&completed_irps_tasklet);
++	TRACEEXIT3(return);
+ }
+ 
+ void usb_transfer_complete_tasklet(unsigned long dummy)
+@@ -59,7 +61,6 @@
+ 	struct io_stack_location *stack;
+ 	union nt_urb *nt_urb;
+ 	unsigned long flags;
+-	unsigned long result;
+ 
+ 
+ 	while (1) {
+@@ -93,11 +94,6 @@
+ 			irp->io_status.status = STATUS_SUCCESS;
+ 		irp->io_status.status_info = urb->actual_length;
+ 
+-		if (irp->user_status) {
+-			irp->user_status->status = irp->io_status.status;
+-			irp->user_status->status_info = urb->actual_length;
+-		}
+-
+ 		/* also applies to ctrlDescReq or venClsReq */
+ 		nt_urb->bulkIntrTrans.transferBufLen = urb->actual_length;
+ 
+@@ -123,53 +119,70 @@
+ 			kfree(irp->driver_context[2]);
+ 		}
+ 
+-		if ((stack->completion_handler) &&
+-		    ((((urb->status == 0) &&
+-		       (stack->control & CALL_ON_SUCCESS)) ||
+-		      ((urb->status != 0) &&
+-		       (stack->control & CALL_ON_ERROR))))) {
+-			DBGTRACE3("calling %p", stack->completion_handler);
+-
+-			result = stack->completion_handler(stack->dev_obj, irp,
+-				stack->handler_arg);
+-			if (result == STATUS_MORE_PROCESSING_REQUIRED) {
+-				usb_free_urb(urb);
+-				continue;
+-			}
+-		}
+-
+-		if (irp->user_event) {
+-			DBGTRACE3("setting event %p", irp->user_event);
+-			NdisSetEvent((struct ndis_event *)irp->user_event);
+-		}
+-
+-		/* To-Do: what about IRP_DEALLOCATE_BUFFER...? */
+-		DBGTRACE3("freeing irp %p", irp);
+-		kfree(irp);
++		IofCompleteRequest(0, 0, irp);
+ 
+ 		usb_free_urb(urb);
+ 	}
+ }
+ 
+-void STDCALL usb_cancel_transfer(struct device_object *dev_obj,
++STDCALL void usb_cancel_transfer(struct device_object *dev_obj,
+                                  struct irp *irp)
+ {
+-	struct urb *urb = irp->driver_context[3];
++	wrap_spin_unlock(&cancel_lock);
+ 
++	TRACEENTER2("irp = %p", irp);
+ 
+-	TRACEENTER3("irp = %p", irp);
++	/* while this function can run at DISPATCH_LEVEL, usb_unlink/kill_urb will
++	 * only work successfully in schedulable context */
++	spin_lock_bh(&canceled_irps_lock);
++	list_add_tail(&irp->cancel_list_entry, &canceled_irps);
++	spin_unlock_bh(&canceled_irps_lock);
+ 
+-	usb_unlink_urb(urb);
++	schedule_work(&cancel_usb_irp_work);
++}
+ 
+-	if (urb->setup_packet)
+-		kfree(urb->setup_packet);
++void usb_cancel_worker(void *dummy)
++{
++	struct irp *irp;
++	struct urb *urb;
+ 
+-	usb_free_urb(urb);
+ 
+-	if (irp->driver_context[2])
+-		kfree(irp->driver_context[2]);
++	TRACEENTER2("%s", "");
+ 
+-	TRACEEXIT3(return);
++	while (1) {
++		spin_lock_bh(&canceled_irps_lock);
++
++		if (list_empty(&canceled_irps)) {
++			spin_unlock_bh(&canceled_irps_lock);
++			TRACEEXIT2(return);
++		}
++		irp = list_entry(canceled_irps.next, struct irp, cancel_list_entry);
++		list_del(&irp->cancel_list_entry);
++
++		spin_unlock_bh(&canceled_irps_lock);
++
++		urb = irp->driver_context[3];
++
++		DBGTRACE3("urb = %p", urb);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,8)
++		usb_kill_urb(urb);
++#else
++		if (usb_unlink_urb(urb) < 0)
++			TRACEEXIT2(return);
++#endif
++
++		if (urb->setup_packet)
++			kfree(urb->setup_packet);
++
++		usb_free_urb(urb);
++
++		if (irp->driver_context[2])
++			kfree(irp->driver_context[2]);
++
++		irp->io_status.status      = STATUS_CANCELLED;
++		irp->io_status.status_info = 0;
++		IofCompleteRequest(0, 0, irp);
++	}
+ }
+ 
+ unsigned long usb_bulk_or_intr_trans(struct usb_device *dev,
+diff -u -r ndiswrapper-0.11/driver/wrapper.c ndiswrapper-0.11+cvs/driver/wrapper.c
+--- ndiswrapper-0.11/driver/wrapper.c	2004-10-08 05:46:15.000000000 +0200
++++ ndiswrapper-0.11+cvs/driver/wrapper.c	2004-10-24 10:35:52.000000000 +0200
+@@ -81,6 +81,7 @@
+ 
+ extern struct list_head wrap_allocs;
+ extern struct wrap_spinlock wrap_allocs_lock;
++extern struct wrap_spinlock dispatch_event_lock;
+ 
+ extern struct list_head handle_ctx_list;
+ 
+@@ -117,8 +118,9 @@
+ 		 * 1 ms */
+ 		mdelay(1);
+ 		/* wait for NdisMResetComplete upto 30*HZ */
+-		if (!wait_event_interruptible_timeout(handle->ndis_comm_wq,
+-			   (handle->ndis_comm_done == 1), 30*HZ))
++		if (wait_event_interruptible_timeout(
++			    handle->ndis_comm_wq,
++			    (handle->ndis_comm_done == 1), 30*HZ))
+ 			handle->ndis_comm_res = NDIS_STATUS_FAILURE;
+ 		res = handle->ndis_comm_res;
+ 		DBGTRACE2("res = %08X, reset_status = %08X",
+@@ -166,8 +168,9 @@
+ 	if (res == NDIS_STATUS_PENDING)
+ 	{
+ 		/* wait for NdisMQueryInformationComplete upto HZ */
+-		if (!wait_event_interruptible_timeout(handle->ndis_comm_wq,
+-			   (handle->ndis_comm_done == 1), HZ))
++		if (wait_event_interruptible_timeout(
++			    handle->ndis_comm_wq,
++			    (handle->ndis_comm_done == 1), HZ))
+ 			handle->ndis_comm_res = NDIS_STATUS_FAILURE;
+ 		res = handle->ndis_comm_res;
+ 	}
+@@ -196,8 +199,9 @@
+ 	if (res == NDIS_STATUS_PENDING)
+ 	{
+ 		/* wait for NdisMSetInformationComplete upto HZ */
+-		if (!wait_event_interruptible_timeout(handle->ndis_comm_wq,
+-			   (handle->ndis_comm_done == 1), HZ))
++		if (wait_event_interruptible_timeout(
++			    handle->ndis_comm_wq,
++			    (handle->ndis_comm_done == 1), HZ))
+ 			handle->ndis_comm_res = NDIS_STATUS_FAILURE;
+ 		res = handle->ndis_comm_res;
+ 	}
+@@ -254,8 +258,9 @@
+ 	}
+ 	res = miniport->init(&res2, &selected_medium, mediumtypes, 13, handle,
+ 			     handle);
+-	DBGTRACE1("init returns %08X", res);
+-	return res != 0;
++	if (res)
++		return res;
++	return 0;
+ }
+ 
+ void call_halt(struct ndis_handle *handle)
+@@ -280,11 +285,10 @@
+ 
+ static void free_timers(struct ndis_handle *handle)
+ {
+-	char x;
+-
+ 	/* Cancel any timers left by bugyy windows driver
+ 	 * Also free the memory for timers
+ 	 */
++	spin_lock_bh(&handle->timers_lock);
+ 	while (!list_empty(&handle->timers))
+ 	{
+ 		struct wrapper_timer *timer =
+@@ -292,14 +296,15 @@
+ 		DBGTRACE1("fixing up timer %p, timer->list %p",
+ 			  timer, &timer->list);
+ 		list_del(&timer->list);
+-		if (timer->active)
+-		{
+-			WARNING("%s", "Fixing an active timer left "
+-				" by buggy windows driver");
+-			wrapper_cancel_timer(timer, &x);
+-		}
++		spin_unlock_bh(&handle->timers_lock);
++
++		timer->repeat = 0;
++		del_timer_sync(&timer->timer);
+ 		wrap_kfree(timer);
++
++		spin_lock_bh(&handle->timers_lock);
+ 	}
++	spin_unlock_bh(&handle->timers_lock);
+ }
+ 
+ static unsigned int call_entry(struct ndis_driver *driver)
+@@ -927,7 +932,11 @@
+ 			set_bit(HW_SUSPENDED, &handle->hw_status);
+ 		}
+ 	}
++#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,9)
++	pci_save_state(pdev);
++#else
+ 	pci_save_state(pdev, handle->pci_state);
++#endif
+ 	pci_set_power_state(pdev, state);
+ 
+ 	DBGTRACE2("%s: device suspended", dev->name);
+@@ -954,7 +963,11 @@
+ 		return 0;
+ 
+ 	pci_set_power_state(pdev, 0);
++#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,9)
++	pci_restore_state(pdev);
++#else
+ 	pci_restore_state(pdev, handle->pci_state);
++#endif
+ 	if (test_bit(HW_HALTED, &handle->hw_status))
+ 		res = call_init(handle);
+ 	else
+@@ -1106,6 +1119,9 @@
+ 
+ 	DBGTRACE("%lu\n", handle->wrapper_work);
+ 
++	if (test_bit(SHUTDOWN, &handle->wrapper_work))
++		return;
++
+ 	if (test_and_clear_bit(SET_OP_MODE, &handle->wrapper_work))
+ 		set_mode(handle, handle->op_mode);
+ 
+@@ -1120,9 +1136,22 @@
+ 
+ 		if (handle->link_status == 0)
+ 		{
++
+ 			for (i = 0; i < MAX_ENCR_KEYS; i++)
+ 				handle->encr_info.keys[i].length = 0;
+-
++#if 0
++				if (handle->encr_info.keys[i].length != 0) {
++					dosetinfo(handle, NDIS_OID_ADD_WEP,
++					    (char *)&handle->encr_info.keys[i],
++					    sizeof(struct encr_key),
++					    &written, &needed);
++					set_encr_mode(handle, ENCR1_ENABLED);
++				}
++
++			set_auth_mode(handle, handle->auth_mode);
++			set_essid(handle, handle->essid.essid,
++			          handle->essid.length);
++#endif
+ 			return;
+ 		}
+ 
+@@ -1149,7 +1178,7 @@
+ 			      assoc_size, &written, &needed);
+ 		if (res || !written)
+ 		{
+-			ERROR("query assoc_info failed (%08X)", res);
++			DBGTRACE("query assoc_info failed (%08X)", res);
+ 			kfree(assoc_info);
+ 			return;
+ 		}
+@@ -1442,6 +1471,7 @@
+ 	INIT_WORK(&handle->set_rx_mode_work, ndis_set_rx_mode_proc, dev);
+ 
+ 	INIT_LIST_HEAD(&handle->timers);
++	spin_lock_init(&handle->timers_lock);
+ 
+ 	handle->rx_packet = &NdisMIndicateReceivePacket;
+ 	handle->send_complete = &NdisMSendComplete;
+@@ -1522,12 +1552,15 @@
+ 		goto out_regions;
+ 
+ 	pci_set_power_state(pdev, 0);
++#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,9)
+ 	pci_restore_state(pdev, NULL);
++#endif
+ 
+ 	DBGTRACE1("%s", "Calling ndis init routine");
+-	if(call_init(handle))
++	if((res = call_init(handle)))
+ 	{
+-		ERROR("%s", "Windows driver couldn't initialize the device");
++		ERROR("Windows driver couldn't initialize the device (%08X)",
++			res);
+ 		res = -EINVAL;
+ 		goto out_start;
+ 	}
+@@ -1552,8 +1585,9 @@
+ 	}
+ 	*/
+ 
+-	/* SMC 2802W V2 cards need reset (any others need it too?) */
+-	if (ent->vendor == 0x1260)
++	/* Prism cards need reset, but Centrino cards don't like it; so for now
++	 * don't reset Centrino cards */
++	if (ent->vendor != 0x8086)
+ 		doreset(handle);
+ 
+ 	/* Wait a little to let card power up otherwise ifup might fail after
+@@ -1626,8 +1660,10 @@
+ #endif
+ 
+ 	TRACEENTER1("%s", "Calling ndis init routine");
+-	if(call_init(handle)) {
+-		ERROR("%s", "Windows driver couldn't initialize the device");
++	if((res = call_init(handle)))
++	{
++		ERROR("Windows driver couldn't initialize the device (%08X)",
++			res);
+ 		res = -EINVAL;
+ 		goto out_start;
+ 	}
+@@ -1649,7 +1685,8 @@
+ 	*/
+ 
+ 	/* WUSB54G requires it, maybe other USB drivers as well... */
+-	doreset(handle);
++	set_current_state(TASK_INTERRUPTIBLE);
++	schedule_timeout(3*HZ);
+ 
+ 	if(setup_dev(handle->net_dev)) {
+ 		ERROR("%s", "Couldn't setup interface");
+@@ -1659,8 +1696,6 @@
+ 	hangcheck_add(handle);
+ 	statcollector_add(handle);
+ 	ndiswrapper_procfs_add_iface(handle);
+-	set_current_state(TASK_INTERRUPTIBLE);
+-	schedule_timeout(HZ);
+ 
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+ 	TRACEEXIT1(return 0);
+@@ -1729,6 +1764,8 @@
+ 	if (handle->phys_device_obj)
+ 		kfree(handle->phys_device_obj);
+ 
++	set_bit(SHUTDOWN, &handle->wrapper_work);
++
+ #ifndef DEBUG_CRASH_ON_INIT
+ 	set_int(handle, NDIS_OID_DISASSOCIATE, 0);
+ 	call_halt(handle);
+@@ -2410,6 +2447,7 @@
+ 	INIT_LIST_HEAD(&handle_ctx_list);
+ 	wrap_spin_lock_init(&wrap_allocs_lock);
+ 	wrap_spin_lock_init(&driverlist_lock);
++	wrap_spin_lock_init(&dispatch_event_lock);
+ 	ndiswrapper_procfs_init();
+ 	DBGTRACE1("%s", "calling loadndisdriver");
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+Tylko w ndiswrapper-0.11+cvs/utils: CVS
+Tylko w ndiswrapper-0.11+cvs/utils: wpa_supplicant
+diff -u -r ndiswrapper-0.11/version ndiswrapper-0.11+cvs/version
+--- ndiswrapper-0.11/version	2004-10-08 05:46:15.000000000 +0200
++++ ndiswrapper-0.11+cvs/version	2004-10-08 17:47:49.000000000 +0200
+@@ -1,3 +1,3 @@
+ NDISWRAPPER_VERSION=0.11
+-EXTRA_VERSION=
++EXTRA_VERSION=+CVS
+ 
