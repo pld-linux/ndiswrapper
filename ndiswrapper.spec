@@ -6,10 +6,6 @@
 %bcond_without	smp		# don't build SMP module
 %bcond_without	up		# don't build UP module
 #
-%if %{without kernel}
-%undefine	with_smp
-%undefine	with_up
-%endif
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
@@ -21,9 +17,8 @@ Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/%{name}/%{name}-%{version}.tar.gz
 # Source0-md5:	55117f1b82f1a4d3ae1cca0b8825a66b
 URL:		http://ndiswrapper.sourceforge.net/
-%if %{with up} || %{with smp}
+%if %{with kernel} || %{with dist_kernel}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.0}
-BuildRequires:	%{kgcc_package}
 %endif
 BuildRequires:	rpmbuild(macros) >= 1.118
 ExclusiveArch:	%{ix86}
@@ -117,37 +112,25 @@ Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 %{__make} -C utils
 %endif
 
-cd ./driver
-
-%if %{with up}
-ln -sf %{_kernelsrcdir}/config-up .config
-install -d include/{linux,config}
-ln -sf %{_kernelsrcdir}/include/linux/autoconf-up.h include/linux/autoconf.h
-ln -sf %{_kernelsrcdir}/include/asm-%{_arch} include/asm
-touch include/config/MARKER
-%{__make} -C %{_kernelsrcdir} modules \
-	SUBDIRS=$PWD \
-	O=$PWD \
-	V=1
-mv ndiswrapper.ko ndiswrapper.ko-done
-
-%{__make} -C %{_kernelsrcdir} mrproper \
-	SUBDIRS=$PWD \
-	O=$PWD \
-	V=1
-%endif
-
-%if %{with smp}
-ln -sf %{_kernelsrcdir}/config-smp .config
-rm -rf include
-install -d include/{linux,config}
-ln -sf %{_kernelsrcdir}/include/linux/autoconf-smp.h include/linux/autoconf.h
-ln -sf %{_kernelsrcdir}/include/asm-%{_arch} include/asm
-touch include/config/MARKER
-%{__make} -C %{_kernelsrcdir} modules \
-	SUBDIRS=$PWD \
-	O=$PWD \
-	V=1
+%if %{with kernel}
+cd driver
+# kernel module(s)
+for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}; do
+    if [ ! -r "%{_kernelsrcdir}/config-$cfg" ]; then
+	exit 1
+    fi
+    rm -rf include
+    install -d include/{linux,config}
+    ln -sf %{_kernelsrcdir}/config-$cfg .config
+    ln -sf %{_kernelsrcdir}/include/linux/autoconf-$cfg.h include/linux/autoconf.h
+    touch include/config/MARKER
+    %{__make} -C %{_kernelsrcdir} clean modules \
+	RCS_FIND_IGNORE="-name '*.ko' -o" \
+	M=$PWD O=$PWD \
+	%{?with_verbose:V=1}
+    mv ndiswrapper.ko ndiswrapper-$cfg.ko
+done
+cd -
 %endif
 
 %install
@@ -158,11 +141,16 @@ install -d $RPM_BUILD_ROOT{/sbin,%{_sysconfdir}/ndiswrapper}
 install utils/{ndiswrapper,loadndisdriver,wlan_radio_averatec_5110hx} $RPM_BUILD_ROOT/sbin
 %endif
 
-%if %{with up}
-install -D driver/ndiswrapper.ko-done $RPM_BUILD_ROOT/lib/modules/%{_kernel_ver}/misc/ndiswrapper.ko
+%if %{with kernel}
+cd driver
+install -d $RPM_BUILD_ROOT/lib/modules/%{_kernel_ver}{,smp}/misc
+install ndiswrapper-%{?with_dist_kernel:up}%{!?with_dist_kernel:nondist}.ko \
+	$RPM_BUILD_ROOT/lib/modules/%{_kernel_ver}/misc/ndiswrapper.ko
+%if %{with smp} && %{with dist_kernel}
+install ndiswrapper-smp.ko \
+        $RPM_BUILD_ROOT/lib/modules/%{_kernel_ver}smp/misc/ndiswrapper.ko
 %endif
-%if %{with smp}
-install -D driver/ndiswrapper.ko $RPM_BUILD_ROOT/lib/modules/%{_kernel_ver}smp/misc/ndiswrapper.ko
+cd -
 %endif
 
 %clean
@@ -188,14 +176,14 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) /sbin/*
 %endif
 
-%if %{with up}
+%if %{with kernel}
 %files -n kernel-net-ndiswrapper
 %defattr(644,root,root,755)
-/lib/modules/%{_kernel_ver}/misc/*
-%endif
+/lib/modules/%{_kernel_ver}/misc/*.ko*
 
-%if %{with smp}
+%if %{with smp} && %{with dist_kernel}
 %files -n kernel-smp-net-ndiswrapper
 %defattr(644,root,root,755)
-/lib/modules/%{_kernel_ver}smp/misc/*
+/lib/modules/%{_kernel_ver}smp/misc/*.ko*
+%endif
 %endif
