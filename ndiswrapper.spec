@@ -12,6 +12,7 @@ Name:		ndiswrapper
 Version:	0.12
 %define		_rel   1
 Release:	%{_rel}
+Epoch:		1
 License:	GPL
 Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/%{name}/%{name}-%{version}.tar.gz
@@ -53,7 +54,7 @@ Group:		Base/Kernel
 Requires(post,postun):	/sbin/depmod
 %{?with_dist_kernel:Requires(postun):	kernel}
 Requires:	dev >= 2.7.7-10
-Requires:	%{name} = %{version}-%{_rel}
+Requires:	%{name} = %{epoch}:%{version}-%{_rel}
 
 %description -n kernel-net-ndiswrapper
 Some wireless LAN vendors refuse to release hardware specifications or
@@ -82,7 +83,7 @@ Group:		Base/Kernel
 Requires(post,postun):	/sbin/depmod
 %{?with_dist_kernel:Requires(postun):	kernel-smp}
 Requires:	dev >= 2.7.7-10
-Requires:	%{name} = %{version}-%{_rel}
+Requires:	%{name} = %{epoch}:%{version}-%{_rel}
 
 %description -n kernel-smp-net-ndiswrapper
 Some wireless LAN vendors refuse to release hardware specifications or
