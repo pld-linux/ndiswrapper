@@ -15,14 +15,14 @@ Release:	%{_rel}
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
-Source0:	http://dl.sourceforge.net/%{name}/%{name}-%{version}.tar.gz
+Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}.tar.gz
 # Source0-md5:	99d1ca988429a8d690c47b679375f441
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.8}
 BuildRequires:	rpmbuild(macros) >= 1.153
 %endif
-ExclusiveArch:	%{ix86}
+ExclusiveArch:	%{ix86} amd64
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
@@ -108,7 +108,9 @@ Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 
 %build
 %if %{with userspace}
-CFLAGS="%{rpmcflags}" %{__make} -C utils    
+%{__make} -C utils \
+	CC="%{__cc}" \
+	CFLAGS="%{rpmcflags} -Wall -DNDISWRAPPER_VERSION=\\\"\$(NDISWRAPPER_VERSION)\\\""
 %endif
 
 %if %{with kernel}
@@ -124,7 +126,8 @@ for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}
     ln -sf %{_kernelsrcdir}/include/linux/autoconf-$cfg.h include/linux/autoconf.h
     ln -sf %{_kernelsrcdir}/include/asm-%{_target_base_arch} include/asm
     touch include/config/MARKER
-    %{__make} gen_exports
+    %{__make} x86_64_stubs gen_exports \
+	KSRC=.
     %{__make} -C %{_kernelsrcdir} clean \
 	RCS_FIND_IGNORE="-name '*.ko' -o" \
 	M=$PWD O=$PWD \
