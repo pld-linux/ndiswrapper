@@ -143,9 +143,11 @@ done
 rm -rf $RPM_BUILD_ROOT
 
 %if %{with userspace}
-install -d $RPM_BUILD_ROOT{/sbin,%{_sysconfdir}/ndiswrapper}
-install utils/{ndiswrapper,loadndisdriver} \
+install -d $RPM_BUILD_ROOT{/sbin,%{_sysconfdir}/ndiswrapper,/usr/sbin}
+install utils/loadndisdriver \
 	$RPM_BUILD_ROOT/sbin
+install utils/{ndiswrapper,ndiswrapper-buginfo} \
+	$RPM_BUILD_ROOT/usr/sbin
 %endif
 
 %if %{with kernel}
@@ -180,6 +182,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS ChangeLog INSTALL README
 %dir %{_sysconfdir}/ndiswrapper
 %attr(755,root,root) /sbin/*
+%attr(755,root,root) /usr/sbin/*
 %endif
 
 %if %{with kernel}
