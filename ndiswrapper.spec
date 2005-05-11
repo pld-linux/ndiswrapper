@@ -22,7 +22,7 @@ URL:		http://ndiswrapper.sourceforge.net/
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.8}
 BuildRequires:	rpmbuild(macros) >= 1.153
 %endif
-ExclusiveArch:	%{ix86} amd64
+ExclusiveArch:	%{ix86} %{x8664}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
