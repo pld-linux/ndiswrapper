@@ -10,7 +10,7 @@ Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
 Version:	1.0
-%define		_rel   2
+%define		_rel   3
 Release:	%{_rel}
 Epoch:		1
 License:	GPL
@@ -20,7 +20,7 @@ Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}.tar.gz
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.8}
-BuildRequires:	rpmbuild(macros) >= 1.153
+BuildRequires:	rpmbuild(macros) >= 1.211
 %endif
 ExclusiveArch:	%{ix86} %{x8664}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
@@ -50,9 +50,11 @@ Summary:	Loadable Linux kernel module that "wraps around" NDIS drivers
 Summary(pl):	Modu³ j±dra Linuksa "owijaj±cy" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
-%{?with_dist_kernel:%requires_releq_kernel_up}
 Requires(post,postun):	/sbin/depmod
-%{?with_dist_kernel:Requires(postun):	kernel}
+%if %{with dist_kernel}
+%requires_releq_kernel_up
+Requires(postun):	%releq_kernel_up
+%endif
 Requires:	dev >= 2.7.7-10
 Requires:	%{name} = %{epoch}:%{version}-%{_rel}
 
@@ -79,9 +81,11 @@ Summary:	Loadable Linux SMP kernel module that "wraps around" NDIS drivers
 Summary(pl):	Modu³ j±dra Linuksa SMP "owijaj±cy" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
-%{?with_dist_kernel:%requires_releq_kernel_smp}
 Requires(post,postun):	/sbin/depmod
-%{?with_dist_kernel:Requires(postun):	kernel-smp}
+%if %{with dist_kernel}
+%requires_releq_kernel_smp
+Requires(postun):	%releq_kernel_smp
+%endif
 Requires:	dev >= 2.7.7-10
 Requires:	%{name} = %{epoch}:%{version}-%{_rel}
 
