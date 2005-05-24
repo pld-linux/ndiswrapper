@@ -20,7 +20,7 @@ Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}.tar.gz
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.8}
-BuildRequires:	rpmbuild(macros) >= 1.211
+BuildRequires:	rpmbuild(macros) >= 1.217
 %endif
 ExclusiveArch:	%{ix86} %{x8664}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
