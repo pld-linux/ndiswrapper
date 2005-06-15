@@ -5,6 +5,7 @@
 %bcond_without	userspace	# don't build userspace tools
 %bcond_without	smp		# don't build SMP module
 %bcond_without	up		# don't build UP module
+%bcond_with	verbose		# verbose build (V=1)
 #
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
@@ -131,12 +132,14 @@ for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}
     ln -sf %{_kernelsrcdir}/include/asm-%{_target_base_arch} include/asm
     touch include/config/MARKER
     %{__make} x86_64_stubs gen_exports \
-	KSRC=.
+	KSRC=. \
+	KVERS="%{_kernel_ver}"
     %{__make} -C %{_kernelsrcdir} clean \
 	RCS_FIND_IGNORE="-name '*.ko' -o" \
 	M=$PWD O=$PWD \
 	%{?with_verbose:V=1}
     %{__make} -C %{_kernelsrcdir} modules \
+	KVERS="%{_kernel_ver}" \
 	M=$PWD O=$PWD \
 	%{?with_verbose:V=1}
     mv ndiswrapper{,-$cfg}.ko
