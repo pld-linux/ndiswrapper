@@ -10,14 +10,14 @@
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
-Version:	1.2
+Version:	1.4
 %define		_rel   2
 Release:	%{_rel}
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}.tar.gz
-# Source0-md5:	5be0bbe524b68de03c1fc1b0b85b3b60
+# Source0-md5:	a2a33ba1a5e65f6c50a9699e202257de
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.8}
@@ -115,7 +115,7 @@ Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 %if %{with userspace}
 %{__make} -C utils \
 	CC="%{__cc}" \
-	CFLAGS="%{rpmcflags} -Wall -DNDISWRAPPER_VERSION=\\\"\$(NDISWRAPPER_VERSION)\\\""
+	CFLAGS="%{rpmcflags} -Wall -DUTILS_VERSION=\\\"\$(UTILS_VERSION)\\\""
 %endif
 
 %if %{with kernel}
