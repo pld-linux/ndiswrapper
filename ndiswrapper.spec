@@ -7,17 +7,17 @@
 %bcond_without	up		# don't build UP module
 %bcond_with	verbose		# verbose build (V=1)
 #
+%define		_rel   1
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
-Version:	1.4
-%define		_rel   2
+Version:	1.7
 Release:	%{_rel}
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}.tar.gz
-# Source0-md5:	a2a33ba1a5e65f6c50a9699e202257de
+# Source0-md5:	a18b424cbcd5ae5b6594fd3ca5cbdd3c
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.8}
@@ -56,8 +56,8 @@ Requires(post,postun):	/sbin/depmod
 %requires_releq_kernel_up
 Requires(postun):	%releq_kernel_up
 %endif
-Requires:	dev >= 2.7.7-10
 Requires:	%{name} = %{epoch}:%{version}-%{_rel}
+Requires:	dev >= 2.7.7-10
 
 %description -n kernel-net-ndiswrapper
 Some wireless LAN vendors refuse to release hardware specifications or
@@ -87,8 +87,8 @@ Requires(post,postun):	/sbin/depmod
 %requires_releq_kernel_smp
 Requires(postun):	%releq_kernel_smp
 %endif
-Requires:	dev >= 2.7.7-10
 Requires:	%{name} = %{epoch}:%{version}-%{_rel}
+Requires:	dev >= 2.7.7-10
 
 %description -n kernel-smp-net-ndiswrapper
 Some wireless LAN vendors refuse to release hardware specifications or
@@ -151,11 +151,11 @@ done
 rm -rf $RPM_BUILD_ROOT
 
 %if %{with userspace}
-install -d $RPM_BUILD_ROOT{/sbin,%{_sysconfdir}/ndiswrapper,/usr/sbin}
+install -d $RPM_BUILD_ROOT{/sbin,%{_sysconfdir}/ndiswrapper,%{_sbindir}}
 install utils/loadndisdriver \
 	$RPM_BUILD_ROOT/sbin
 install utils/{ndiswrapper,ndiswrapper-buginfo} \
-	$RPM_BUILD_ROOT/usr/sbin
+	$RPM_BUILD_ROOT%{_sbindir}
 %endif
 
 %if %{with kernel}
@@ -190,7 +190,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS ChangeLog INSTALL README
 %dir %{_sysconfdir}/ndiswrapper
 %attr(755,root,root) /sbin/*
-%attr(755,root,root) /usr/sbin/*
+%attr(755,root,root) %{_sbindir}/*
 %endif
 
 %if %{with kernel}
