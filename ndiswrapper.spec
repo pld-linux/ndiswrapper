@@ -125,25 +125,24 @@ for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}
     if [ ! -r "%{_kernelsrcdir}/config-$cfg" ]; then
 	exit 1
     fi
-    rm -rf include
-    install -d include/{linux,config}
-    ln -sf %{_kernelsrcdir}/config-$cfg .config
-    ln -sf %{_kernelsrcdir}/include/linux/autoconf-$cfg.h include/linux/autoconf.h
-    ln -sf %{_kernelsrcdir}/include/asm-%{_target_base_arch} include/asm
-    ln -sf %{_kernelsrcdir}/Module.symvers-$cfg Module.symvers
-    touch include/config/MARKER
+    install -d o/include/linux
+    ln -sf %{_kernelsrcdir}/config-$cfg o/.config
+    ln -sf %{_kernelsrcdir}/Module.symvers-$cfg o/Module.symvers
+    ln -sf %{_kernelsrcdir}/include/linux/autoconf-$cfg.h o/include/linux/autoconf.h
+    %{__make} -C %{_kernelsrcdir} O=$PWD/o prepare scripts
+
     %{__make} x86_64_stubs gen_exports \
 	KSRC=. \
 	KVERS="%{_kernel_ver}"
     %{__make} -C %{_kernelsrcdir} clean \
-	RCS_FIND_IGNORE="-name '*.ko' -o" \
-	M=$PWD O=$PWD \
-	%{?with_verbose:V=1}
+        RCS_FIND_IGNORE="-name '*.ko' -o" \
+        M=$PWD O=$PWD/o \
+        %{?with_verbose:V=1}
     %{__make} -C %{_kernelsrcdir} modules \
-	KVERS="%{_kernel_ver}" \
-	M=$PWD O=$PWD \
-	%{?with_verbose:V=1}
-    mv ndiswrapper{,-$cfg}.ko
+        RCS_FIND_IGNORE="-name '*.ko' -o" \
+        M=$PWD O=$PWD/o \
+        %{?with_verbose:V=1}
+     mv ndiswrapper{,-$cfg}.ko
 done
 %endif
 
