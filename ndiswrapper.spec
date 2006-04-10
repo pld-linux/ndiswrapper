@@ -7,7 +7,7 @@
 %bcond_without	up		# don't build UP module
 %bcond_with	verbose		# verbose build (V=1)
 #
-%define		_rel   6
+%define		_rel	6
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
@@ -122,30 +122,30 @@ Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 cd driver
 # kernel module(s)
 for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}; do
-    if [ ! -r "%{_kernelsrcdir}/config-$cfg" ]; then
-	exit 1
-    fi
-    install -d o/include/linux
-    ln -sf %{_kernelsrcdir}/config-$cfg o/.config
-    ln -sf %{_kernelsrcdir}/Module.symvers-$cfg o/Module.symvers
-    ln -sf %{_kernelsrcdir}/include/linux/autoconf-$cfg.h o/include/linux/autoconf.h
-    %{__make} -C %{_kernelsrcdir} O=$PWD/o prepare scripts \
-	KVERS="%{_kernel_ver}" \
+	if [ ! -r "%{_kernelsrcdir}/config-$cfg" ]; then
+		exit 1
+	fi
+	install -d o/include/linux
+	ln -sf %{_kernelsrcdir}/config-$cfg o/.config
+	ln -sf %{_kernelsrcdir}/Module.symvers-$cfg o/Module.symvers
+	ln -sf %{_kernelsrcdir}/include/linux/autoconf-$cfg.h o/include/linux/autoconf.h
+	%{__make} -C %{_kernelsrcdir} O=$PWD/o prepare scripts \
+		KVERS="%{_kernel_ver}" \
 
-    %{__make} x86_64_stubs gen_exports \
-	KSRC=. \
-	KVERS="%{_kernel_ver}"
-    %{__make} -C %{_kernelsrcdir} clean \
-        RCS_FIND_IGNORE="-name '*.ko' -o" \
-        M=$PWD O=$PWD/o \
-	KVERS="%{_kernel_ver}" \
-        %{?with_verbose:V=1}
-    %{__make} -C %{_kernelsrcdir} modules \
-        RCS_FIND_IGNORE="-name '*.ko' -o" \
-        M=$PWD O=$PWD/o \
-	KVERS="%{_kernel_ver}" \
-        %{?with_verbose:V=1}
-     mv ndiswrapper{,-$cfg}.ko
+	%{__make} x86_64_stubs gen_exports \
+		KSRC=. \
+		KVERS="%{_kernel_ver}"
+	%{__make} -C %{_kernelsrcdir} clean \
+		RCS_FIND_IGNORE="-name '*.ko' -o" \
+		M=$PWD O=$PWD/o \
+		KVERS="%{_kernel_ver}" \
+		%{?with_verbose:V=1}
+	%{__make} -C %{_kernelsrcdir} modules \
+		RCS_FIND_IGNORE="-name '*.ko' -o" \
+		M=$PWD O=$PWD/o \
+		KVERS="%{_kernel_ver}" \
+		%{?with_verbose:V=1}
+	 mv ndiswrapper{,-$cfg}.ko
 done
 %endif
 
@@ -167,7 +167,7 @@ install ndiswrapper-%{?with_dist_kernel:up}%{!?with_dist_kernel:nondist}.ko \
 	$RPM_BUILD_ROOT/lib/modules/%{_kernel_ver}/misc/ndiswrapper.ko
 %if %{with smp} && %{with dist_kernel}
 install ndiswrapper-smp.ko \
-        $RPM_BUILD_ROOT/lib/modules/%{_kernel_ver}smp/misc/ndiswrapper.ko
+	$RPM_BUILD_ROOT/lib/modules/%{_kernel_ver}smp/misc/ndiswrapper.ko
 %endif
 %endif
 
