@@ -11,13 +11,13 @@
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
-Version:	1.15
+Version:	1.17
 Release:	%{_rel}
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
 Source0:        http://mesh.dl.sourceforge.net/sourceforge/ndiswrapper/%{name}-%{version}.tar.gz
-# Source0-md5:	0ca5bcab8e9b7b0d40f2e886f1fbaa45
+# Source0-md5:	6c72c7bdeb184b6df44506794ab57e1a
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 3:2.6.8}
