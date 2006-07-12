@@ -16,13 +16,14 @@ Release:	%{_rel}
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
-Source0:        http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}.tar.gz
+Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}.tar.gz
 # Source0-md5:	c26386a0428c6aea175d9761c10eef9f
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 3:2.6.8}
 BuildRequires:	rpmbuild(macros) >= 1.217
 %endif
+BuildRequires:	gcc >= 5:3.4.0
 ExclusiveArch:	%{ix86} %{x8664}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
