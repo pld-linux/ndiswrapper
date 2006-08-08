@@ -7,7 +7,7 @@
 %bcond_without	up		# don't build UP module
 %bcond_with	verbose		# verbose build (V=1)
 #
-%define		_rel	1
+%define		_rel	2
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
@@ -111,6 +111,7 @@ Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 
 %prep
 %setup -q
+%{__sed} -i -e s#"loader.h"#"../driver/loader.h"#g utils/loadndisdriver.c
 
 %build
 %if %{with userspace}
