@@ -112,7 +112,7 @@ Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 
 %prep
 %setup -q
-%{__sed} -i -e s#"loader.h"#"../driver/loader.h"#g utils/loadndisdriver.c
+%{__sed} -i -e 's#"loader.h"#"../driver/loader.h"#g' utils/loadndisdriver.c
 
 %build
 %if %{with userspace}
