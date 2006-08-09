@@ -24,6 +24,7 @@ URL:		http://ndiswrapper.sourceforge.net/
 BuildRequires:	rpmbuild(macros) >= 1.217
 %endif
 BuildRequires:	gcc >= 5:3.4.0
+BuildRequires:	sed >= 4.0
 ExclusiveArch:	%{ix86} %{x8664}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
@@ -134,16 +135,18 @@ for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}
 	%{__make} -C %{_kernelsrcdir} O=$PWD/o prepare scripts \
 		KVERS="%{_kernel_ver}" \
 
+%ifarch x86_64
 	%{__make} x86_64_stubs gen_exports \
 		KSRC=. \
 		KVERS="%{_kernel_ver}" \
 		%{?x8664:CONFIG_X86_64=y}
+%endif
 	%{__make} -C %{_kernelsrcdir} clean \
 		RCS_FIND_IGNORE="-name '*.ko' -o" \
 		M=$PWD O=$PWD/o \
 		KVERS="%{_kernel_ver}" \
 		%{?with_verbose:V=1}
-	%{__make} -C %{_kernelsrcdir} modules \
+	%{__make} KBUILD=%{_kernelsrcdir} \
 		RCS_FIND_IGNORE="-name '*.ko' -o" \
 		M=$PWD O=$PWD/o \
 		KVERS="%{_kernel_ver}" \
