@@ -7,7 +7,7 @@
 %bcond_without	up		# don't build UP module
 %bcond_with	verbose		# verbose build (V=1)
 #
-%define		_rel	1
+%define		_rel	1.1
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
@@ -135,12 +135,6 @@ for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}
 	%{__make} -C %{_kernelsrcdir} O=$PWD/o prepare scripts \
 		KVERS="%{_kernel_ver}" \
 
-%ifarch x86_64
-	%{__make} x86_64_stubs gen_exports \
-		KSRC=. \
-		KVERS="%{_kernel_ver}" \
-		%{?x8664:CONFIG_X86_64=y}
-%endif
 	%{__make} -C %{_kernelsrcdir} clean \
 		RCS_FIND_IGNORE="-name '*.ko' -o" \
 		M=$PWD O=$PWD/o \
