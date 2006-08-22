@@ -7,17 +7,17 @@
 %bcond_without	up		# don't build UP module
 %bcond_with	verbose		# verbose build (V=1)
 #
-%define		_rel	1.1
+%define		_rel	rc1
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
-Version:	1.23
-Release:	%{_rel}
+Version:	1.24
+Release:	0.%{_rel}.1
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
-Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}.tar.gz
-# Source0-md5:	ba5a2c39de2b25ba45c9effd25337359
+Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}%{_rel}.tar.gz
+# Source0-md5:	2cc5ae9e69a6b8117d496ec0287e278b
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 3:2.6.8}
@@ -111,7 +111,7 @@ sterowniki NDIS (API sterowników sieciowych w Windows).
 Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 
 %prep
-%setup -q
+%setup -q -n %{name}-%{version}%{_rel}
 %{__sed} -i -e 's#"loader.h"#"../driver/loader.h"#g' utils/loadndisdriver.c
 
 %build
