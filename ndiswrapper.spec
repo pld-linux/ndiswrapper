@@ -7,7 +7,7 @@
 %bcond_without	up		# don't build UP module
 %bcond_with	verbose		# verbose build (V=1)
 #
-%define		_rel	rc1
+%define		_rel	rc2
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
@@ -17,7 +17,7 @@ Epoch:		1
 License:	GPL
 Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}%{_rel}.tar.gz
-# Source0-md5:	2cc5ae9e69a6b8117d496ec0287e278b
+# Source0-md5:	bbe5702ae7e529b6198fe81d424da2c4
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 3:2.6.8}
