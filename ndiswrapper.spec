@@ -58,7 +58,7 @@ Requires(post,postun):	/sbin/depmod
 %requires_releq_kernel_up
 Requires(postun):	%releq_kernel_up
 %endif
-Requires:	%{name} = %{epoch}:%{version}-%{_rel}
+Requires:	%{name} = %{epoch}:%{version}-%{release}
 Requires:	dev >= 2.7.7-10
 
 %description -n kernel-net-ndiswrapper
@@ -89,7 +89,7 @@ Requires(post,postun):	/sbin/depmod
 %requires_releq_kernel_smp
 Requires(postun):	%releq_kernel_smp
 %endif
-Requires:	%{name} = %{epoch}:%{version}-%{_rel}
+Requires:	%{name} = %{epoch}:%{version}-%{release}
 Requires:	dev >= 2.7.7-10
 
 %description -n kernel-smp-net-ndiswrapper
