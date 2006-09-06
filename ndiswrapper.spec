@@ -7,16 +7,17 @@
 %bcond_without	up		# don't build UP module
 %bcond_with	verbose		# verbose build (V=1)
 #
-%define		_rel	rc3
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
 Version:	1.24
-Release:	0.%{_rel}.1
+%define		bver	rc3
+%define		_rel	0.%{bver}.1
+Release:	%{_rel}
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
-Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}%{_rel}.tar.gz
+Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}%{bver}.tar.gz
 # Source0-md5:	da799b35e910097937cf6ac07b4dc1ce
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
@@ -58,7 +59,7 @@ Requires(post,postun):	/sbin/depmod
 %requires_releq_kernel_up
 Requires(postun):	%releq_kernel_up
 %endif
-Requires:	%{name} = %{epoch}:%{version}-%{release}
+Requires:	%{name} = %{epoch}:%{version}-%{_rel}
 Requires:	dev >= 2.7.7-10
 
 %description -n kernel-net-ndiswrapper
@@ -89,7 +90,7 @@ Requires(post,postun):	/sbin/depmod
 %requires_releq_kernel_smp
 Requires(postun):	%releq_kernel_smp
 %endif
-Requires:	%{name} = %{epoch}:%{version}-%{release}
+Requires:	%{name} = %{epoch}:%{version}-%{_rel}
 Requires:	dev >= 2.7.7-10
 
 %description -n kernel-smp-net-ndiswrapper
