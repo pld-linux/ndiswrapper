@@ -119,7 +119,8 @@ Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 %if %{with userspace}
 %{__make} -C utils \
 	CC="%{__cc}" \
-	CFLAGS="%{rpmcflags} -Wall -DUTILS_VERSION=\\\"\$(UTILS_VERSION)\\\""
+	CFLAGS="%{rpmcflags} -Wall -DUTILS_VERSION=\\\"\$(UTILS_VERSION)\\\"" \
+	%{?x8664:CONFIG_X86_64=y}
 %endif
 
 %if %{with kernel}
@@ -141,10 +142,12 @@ for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}
 		M=$PWD O=$PWD/o \
 		KVERS="%{_kernel_ver}" \
 		%{?with_verbose:V=1}
+
 	%{__make} KBUILD=%{_kernelsrcdir} \
 		RCS_FIND_IGNORE="-name '*.ko' -o" \
 		M=$PWD O=$PWD/o \
 		KVERS="%{_kernel_ver}" \
+		%{?x8664:CONFIG_X86_64=y} \
 		%{?with_verbose:V=1}
 	 mv ndiswrapper{,-$cfg}.ko
 done
