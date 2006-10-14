@@ -18,9 +18,10 @@ License:	GPL
 Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}.tar.gz
 # Source0-md5:	a18b424cbcd5ae5b6594fd3ca5cbdd3c
+Patch0:		%{name}-usb_driver_owner.patch
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
-%{?with_dist_kernel:BuildRequires:	kernel-module-build >= 2.6.8}
+%{?with_dist_kernel:BuildRequires:	kernel%{_alt_kernel}-module-build >= 2.6.8}
 BuildRequires:	rpmbuild(macros) >= 1.217
 %endif
 ExclusiveArch:	%{ix86} %{x8664}
@@ -46,7 +47,7 @@ sterowniki NDIS (API sterowników sieciowych w Windows).
 G³ówny pakiet zawiera narzêdzia przestrzeni u¿ytkownika dla
 ndiswrappera.
 
-%package -n kernel-net-ndiswrapper
+%package -n kernel%{_alt_kernel}-net-ndiswrapper
 Summary:	Loadable Linux kernel module that "wraps around" NDIS drivers
 Summary(pl):	Modu³ j±dra Linuksa "owijaj±cy" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
@@ -59,7 +60,7 @@ Requires(postun):	%releq_kernel_up
 Requires:	%{name} = %{epoch}:%{version}-%{_rel}
 Requires:	dev >= 2.7.7-10
 
-%description -n kernel-net-ndiswrapper
+%description -n kernel%{_alt_kernel}-net-ndiswrapper
 Some wireless LAN vendors refuse to release hardware specifications or
 drivers for their products for operating systems other than Microsoft
 Windows. The ndiswrapper project makes it possible to use such
@@ -68,7 +69,7 @@ around" NDIS (Windows network driver API) drivers.
 
 This package contains Linux kernel module.
 
-%description -n kernel-net-ndiswrapper -l pl
+%description -n kernel%{_alt_kernel}-net-ndiswrapper -l pl
 Niektórzy producenci bezprzewodowych kart sieciowych nie udostêpniaj±
 specyfikacji lub sterowników dla swoich produktów, dla systemów innych
 ni¿ Microsoft Windows. Projekt ndiswrapper umo¿liwia u¿ycie takiego
@@ -77,7 +78,7 @@ sterowniki NDIS (API sterowników sieciowych w Windows).
 
 Ten pakiet zawiera modu³ j±dra Linuksa.
 
-%package -n kernel-smp-net-ndiswrapper
+%package -n kernel%{_alt_kernel}-smp-net-ndiswrapper
 Summary:	Loadable Linux SMP kernel module that "wraps around" NDIS drivers
 Summary(pl):	Modu³ j±dra Linuksa SMP "owijaj±cy" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
@@ -90,7 +91,7 @@ Requires(postun):	%releq_kernel_smp
 Requires:	%{name} = %{epoch}:%{version}-%{_rel}
 Requires:	dev >= 2.7.7-10
 
-%description -n kernel-smp-net-ndiswrapper
+%description -n kernel%{_alt_kernel}-smp-net-ndiswrapper
 Some wireless LAN vendors refuse to release hardware specifications or
 drivers for their products for operating systems other than Microsoft
 Windows. The ndiswrapper project makes it possible to use such
@@ -99,7 +100,7 @@ around" NDIS (Windows network driver API) drivers.
 
 This package contains Linux SMP kernel module.
 
-%description -n kernel-smp-net-ndiswrapper -l pl
+%description -n kernel%{_alt_kernel}-smp-net-ndiswrapper -l pl
 Niektórzy producenci bezprzewodowych kart sieciowych nie udostêpniaj±
 specyfikacji lub sterowników dla swoich produktów, dla systemów innych
 ni¿ Microsoft Windows. Projekt ndiswrapper umo¿liwia u¿ycie takiego
@@ -110,6 +111,7 @@ Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 
 %prep
 %setup -q
+%patch0 -p1
 
 %build
 %if %{with userspace}
@@ -129,7 +131,7 @@ for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}
     ln -sf %{_kernelsrcdir}/config-$cfg o/.config
     ln -sf %{_kernelsrcdir}/Module.symvers-$cfg o/Module.symvers
     ln -sf %{_kernelsrcdir}/include/linux/autoconf-$cfg.h o/include/linux/autoconf.h
-    %{__make} -C %{_kernelsrcdir} O=$PWD/o prepare scripts
+    %{__make} -j1 -C %{_kernelsrcdir} O=$PWD/o prepare scripts
 
     %{__make} x86_64_stubs gen_exports \
 	KSRC=. \
@@ -171,16 +173,16 @@ install ndiswrapper-smp.ko \
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%post	-n kernel-net-ndiswrapper
+%post	-n kernel%{_alt_kernel}-net-ndiswrapper
 %depmod %{_kernel_ver}
 
-%postun	-n kernel-net-ndiswrapper
+%postun	-n kernel%{_alt_kernel}-net-ndiswrapper
 %depmod %{_kernel_ver}
 
-%post	-n kernel-smp-net-ndiswrapper
+%post	-n kernel%{_alt_kernel}-smp-net-ndiswrapper
 %depmod %{_kernel_ver}smp
 
-%postun -n kernel-smp-net-ndiswrapper
+%postun -n kernel%{_alt_kernel}-smp-net-ndiswrapper
 %depmod %{_kernel_ver}smp
 
 %if %{with userspace}
@@ -193,12 +195,12 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 
 %if %{with kernel}
-%files -n kernel-net-ndiswrapper
+%files -n kernel%{_alt_kernel}-net-ndiswrapper
 %defattr(644,root,root,755)
 /lib/modules/%{_kernel_ver}/misc/ndiswrapper.ko*
 
 %if %{with smp} && %{with dist_kernel}
-%files -n kernel-smp-net-ndiswrapper
+%files -n kernel%{_alt_kernel}-smp-net-ndiswrapper
 %defattr(644,root,root,755)
 /lib/modules/%{_kernel_ver}smp/misc/ndiswrapper.ko*
 %endif
