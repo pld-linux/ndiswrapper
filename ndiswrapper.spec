@@ -21,6 +21,9 @@ Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}%{bver}.tar.gz
 # Source0-md5:	4bd69e16ec8d1dc69b2bdc725cfb625e
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
+%ifarch %{ix86}
+BuildRequires:	gcc >= 5:3.4
+%endif
 %{?with_dist_kernel:BuildRequires:	kernel-module-build >= 3:2.6.8}
 BuildRequires:	rpmbuild(macros) >= 1.217
 %endif
