@@ -133,7 +133,8 @@ for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}
 
     %{__make} x86_64_stubs gen_exports \
 	KSRC=. \
-	KVERS="%{_kernel_ver}"
+	KVERS="%{_kernel_ver}" \
+	%{?x8664:CONFIG_X86_64=y}
     %{__make} -C %{_kernelsrcdir} clean \
         RCS_FIND_IGNORE="-name '*.ko' -o" \
         M=$PWD O=$PWD/o \
