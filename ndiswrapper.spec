@@ -8,7 +8,7 @@
 %bcond_with	verbose		# verbose build (V=1)
 #
 Summary:	Tools to "wrap around" NDIS drivers
-Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
+Summary(pl.UTF-8):   NarzÄ™dzia "opakowujÄ…ce" sterowniki NDIS
 Name:		ndiswrapper
 Version:	1.34
 #%define		bver	rc2
@@ -41,19 +41,19 @@ around" NDIS (Windows network driver API) drivers.
 The main package contains the userspace tools for ndiswrapper kernel
 module.
 
-%description -l pl
-Niektórzy producenci bezprzewodowych kart sieciowych nie udostêpniaj±
-specyfikacji lub sterowników dla swoich produktów, dla systemów innych
-ni¿ Microsoft Windows. Projekt ndiswrapper umo¿liwia u¿ycie takiego
-sprzêtu w systemie Linux, dostarczaj±c modu³ j±dra który "owija"
-sterowniki NDIS (API sterowników sieciowych w Windows).
+%description -l pl.UTF-8
+NiektÃ³rzy producenci bezprzewodowych kart sieciowych nie udostÄ™pniajÄ…
+specyfikacji lub sterownikÃ³w dla swoich produktÃ³w, dla systemÃ³w innych
+niÅ¼ Microsoft Windows. Projekt ndiswrapper umoÅ¼liwia uÅ¼ycie takiego
+sprzÄ™tu w systemie Linux, dostarczajÄ…c moduÅ‚ jÄ…dra ktÃ³ry "owija"
+sterowniki NDIS (API sterownikÃ³w sieciowych w Windows).
 
-G³ówny pakiet zawiera narzêdzia przestrzeni u¿ytkownika dla
+GÅ‚Ã³wny pakiet zawiera narzÄ™dzia przestrzeni uÅ¼ytkownika dla
 ndiswrappera.
 
 %package -n kernel%{_alt_kernel}-net-ndiswrapper
 Summary:	Loadable Linux kernel module that "wraps around" NDIS drivers
-Summary(pl):	Modu³ j±dra Linuksa "owijaj±cy" sterowniki NDIS
+Summary(pl.UTF-8):   ModuÅ‚ jÄ…dra Linuksa "owijajÄ…cy" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
 Requires(post,postun):	/sbin/depmod
@@ -73,18 +73,18 @@ around" NDIS (Windows network driver API) drivers.
 
 This package contains Linux kernel module.
 
-%description -n kernel%{_alt_kernel}-net-ndiswrapper -l pl
-Niektórzy producenci bezprzewodowych kart sieciowych nie udostêpniaj±
-specyfikacji lub sterowników dla swoich produktów, dla systemów innych
-ni¿ Microsoft Windows. Projekt ndiswrapper umo¿liwia u¿ycie takiego
-sprzêtu w systemie Linux, dostarczaj±c modu³ j±dra który "owija"
-sterowniki NDIS (API sterowników sieciowych w Windows).
+%description -n kernel%{_alt_kernel}-net-ndiswrapper -l pl.UTF-8
+NiektÃ³rzy producenci bezprzewodowych kart sieciowych nie udostÄ™pniajÄ…
+specyfikacji lub sterownikÃ³w dla swoich produktÃ³w, dla systemÃ³w innych
+niÅ¼ Microsoft Windows. Projekt ndiswrapper umoÅ¼liwia uÅ¼ycie takiego
+sprzÄ™tu w systemie Linux, dostarczajÄ…c moduÅ‚ jÄ…dra ktÃ³ry "owija"
+sterowniki NDIS (API sterownikÃ³w sieciowych w Windows).
 
-Ten pakiet zawiera modu³ j±dra Linuksa.
+Ten pakiet zawiera moduÅ‚ jÄ…dra Linuksa.
 
 %package -n kernel%{_alt_kernel}-smp-net-ndiswrapper
 Summary:	Loadable Linux SMP kernel module that "wraps around" NDIS drivers
-Summary(pl):	Modu³ j±dra Linuksa SMP "owijaj±cy" sterowniki NDIS
+Summary(pl.UTF-8):   ModuÅ‚ jÄ…dra Linuksa SMP "owijajÄ…cy" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
 Requires(post,postun):	/sbin/depmod
@@ -104,14 +104,14 @@ around" NDIS (Windows network driver API) drivers.
 
 This package contains Linux SMP kernel module.
 
-%description -n kernel%{_alt_kernel}-smp-net-ndiswrapper -l pl
-Niektórzy producenci bezprzewodowych kart sieciowych nie udostêpniaj±
-specyfikacji lub sterowników dla swoich produktów, dla systemów innych
-ni¿ Microsoft Windows. Projekt ndiswrapper umo¿liwia u¿ycie takiego
-sprzêtu w systemie Linux, dostarczaj±c modu³ j±dra który "owija"
-sterowniki NDIS (API sterowników sieciowych w Windows).
+%description -n kernel%{_alt_kernel}-smp-net-ndiswrapper -l pl.UTF-8
+NiektÃ³rzy producenci bezprzewodowych kart sieciowych nie udostÄ™pniajÄ…
+specyfikacji lub sterownikÃ³w dla swoich produktÃ³w, dla systemÃ³w innych
+niÅ¼ Microsoft Windows. Projekt ndiswrapper umoÅ¼liwia uÅ¼ycie takiego
+sprzÄ™tu w systemie Linux, dostarczajÄ…c moduÅ‚ jÄ…dra ktÃ³ry "owija"
+sterowniki NDIS (API sterownikÃ³w sieciowych w Windows).
 
-Ten pakiet zawiera modu³ j±dra Linuksa SMP.
+Ten pakiet zawiera moduÅ‚ jÄ…dra Linuksa SMP.
 
 %prep
 %setup -q
