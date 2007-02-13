@@ -8,7 +8,7 @@
 %bcond_with	verbose		# verbose build (V=1)
 #
 Summary:	Tools to "wrap around" NDIS drivers
-Summary(pl.UTF-8):   Narzędzia "opakowujące" sterowniki NDIS
+Summary(pl.UTF-8):	Narzędzia "opakowujące" sterowniki NDIS
 Name:		ndiswrapper
 Version:	1.34
 #%define		bver	rc2
@@ -53,7 +53,7 @@ ndiswrappera.
 
 %package -n kernel%{_alt_kernel}-net-ndiswrapper
 Summary:	Loadable Linux kernel module that "wraps around" NDIS drivers
-Summary(pl.UTF-8):   Moduł jądra Linuksa "owijający" sterowniki NDIS
+Summary(pl.UTF-8):	Moduł jądra Linuksa "owijający" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
 Requires(post,postun):	/sbin/depmod
@@ -84,7 +84,7 @@ Ten pakiet zawiera moduł jądra Linuksa.
 
 %package -n kernel%{_alt_kernel}-smp-net-ndiswrapper
 Summary:	Loadable Linux SMP kernel module that "wraps around" NDIS drivers
-Summary(pl.UTF-8):   Moduł jądra Linuksa SMP "owijający" sterowniki NDIS
+Summary(pl.UTF-8):	Moduł jądra Linuksa SMP "owijający" sterowniki NDIS
 Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
 Requires(post,postun):	/sbin/depmod
