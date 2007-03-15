@@ -6,6 +6,11 @@
 %bcond_without	smp		# don't build SMP module
 %bcond_without	up		# don't build UP module
 %bcond_with	verbose		# verbose build (V=1)
+%bcond_with	grsec_kernel	# build for kernel-grsecurity
+#
+%if %{with kernel} && %{with dist_kernel} && %{with grsec_kernel}
+%define	alt_kernel	grsecurity
+%endif
 #
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl.UTF-8):	Narzędzia "opakowujące" sterowniki NDIS
