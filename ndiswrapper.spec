@@ -3,8 +3,6 @@
 %bcond_without	dist_kernel	# without distribution kernel
 %bcond_without	kernel		# don't build kernel modules
 %bcond_without	userspace	# don't build userspace tools
-%bcond_without	smp		# don't build SMP module
-%bcond_without	up		# don't build UP module
 %bcond_with	verbose		# verbose build (V=1)
 %bcond_with	grsec_kernel	# build for kernel-grsecurity
 #
@@ -30,7 +28,7 @@ URL:		http://ndiswrapper.sourceforge.net/
 BuildRequires:	gcc >= 5:3.4
 %endif
 %{?with_dist_kernel:BuildRequires:	kernel%{_alt_kernel}-module-build >= 3:2.6.8}
-BuildRequires:	rpmbuild(macros) >= 1.330
+BuildRequires:	rpmbuild(macros) >= 1.379
 %endif
 BuildRequires:	sed >= 4.0
 ExclusiveArch:	%{ix86} %{x8664}
@@ -63,8 +61,8 @@ Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
 Requires(post,postun):	/sbin/depmod
 %if %{with dist_kernel}
-%requires_releq_kernel_up
-Requires(postun):	%releq_kernel_up
+%requires_releq_kernel
+Requires(postun):	%releq_kernel
 %endif
 Requires:	%{name} = %{epoch}:%{version}-%{_rel}
 Requires:	dev >= 2.7.7-10
@@ -86,37 +84,6 @@ sprzętu w systemie Linux, dostarczając moduł jądra który "owija"
 sterowniki NDIS (API sterowników sieciowych w Windows).
 
 Ten pakiet zawiera moduł jądra Linuksa.
-
-%package -n kernel%{_alt_kernel}-smp-net-ndiswrapper
-Summary:	Loadable Linux SMP kernel module that "wraps around" NDIS drivers
-Summary(pl.UTF-8):	Moduł jądra Linuksa SMP "owijający" sterowniki NDIS
-Release:	%{_rel}@%{_kernel_ver_str}
-Group:		Base/Kernel
-Requires(post,postun):	/sbin/depmod
-%if %{with dist_kernel}
-%requires_releq_kernel_smp
-Requires(postun):	%releq_kernel_smp
-%endif
-Requires:	%{name} = %{epoch}:%{version}-%{_rel}
-Requires:	dev >= 2.7.7-10
-
-%description -n kernel%{_alt_kernel}-smp-net-ndiswrapper
-Some wireless LAN vendors refuse to release hardware specifications or
-drivers for their products for operating systems other than Microsoft
-Windows. The ndiswrapper project makes it possible to use such
-hardware with Linux by means of a loadable kernel module that "wraps
-around" NDIS (Windows network driver API) drivers.
-
-This package contains Linux SMP kernel module.
-
-%description -n kernel%{_alt_kernel}-smp-net-ndiswrapper -l pl.UTF-8
-Niektórzy producenci bezprzewodowych kart sieciowych nie udostępniają
-specyfikacji lub sterowników dla swoich produktów, dla systemów innych
-niż Microsoft Windows. Projekt ndiswrapper umożliwia użycie takiego
-sprzętu w systemie Linux, dostarczając moduł jądra który "owija"
-sterowniki NDIS (API sterowników sieciowych w Windows).
-
-Ten pakiet zawiera moduł jądra Linuksa SMP.
 
 %prep
 %setup -q
@@ -172,12 +139,6 @@ rm -rf $RPM_BUILD_ROOT
 %postun	-n kernel%{_alt_kernel}-net-ndiswrapper
 %depmod %{_kernel_ver}
 
-%post	-n kernel%{_alt_kernel}-smp-net-ndiswrapper
-%depmod %{_kernel_ver}smp
-
-%postun -n kernel%{_alt_kernel}-smp-net-ndiswrapper
-%depmod %{_kernel_ver}smp
-
 %if %{with userspace}
 %files
 %defattr(644,root,root,755)
@@ -188,15 +149,6 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 
 %if %{with kernel}
-%if %{with up} || %{without dist_kernel}
 %files -n kernel%{_alt_kernel}-net-ndiswrapper
 %defattr(644,root,root,755)
 /lib/modules/%{_kernel_ver}/misc/ndiswrapper.ko*
-%endif
-
-%if %{with smp} && %{with dist_kernel}
-%files -n kernel%{_alt_kernel}-smp-net-ndiswrapper
-%defattr(644,root,root,755)
-/lib/modules/%{_kernel_ver}smp/misc/ndiswrapper.ko*
-%endif
-%endif
