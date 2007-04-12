@@ -27,7 +27,7 @@ URL:		http://ndiswrapper.sourceforge.net/
 %ifarch %{ix86}
 BuildRequires:	gcc >= 5:3.4
 %endif
-%{?with_dist_kernel:BuildRequires:	kernel%{_alt_kernel}-module-build >= 3:2.6.8}
+%{?with_dist_kernel:BuildRequires:	kernel%{_alt_kernel}-module-build >= 3:2.6.20.2}
 BuildRequires:	rpmbuild(macros) >= 1.379
 %endif
 BuildRequires:	sed >= 4.0
