@@ -12,7 +12,7 @@
 %define	alt_kernel	grsecurity
 %endif
 #
-%define		_rel   6
+%define		_rel   50
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		ndiswrapper
