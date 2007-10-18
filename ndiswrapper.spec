@@ -152,3 +152,4 @@ rm -rf $RPM_BUILD_ROOT
 %files -n kernel%{_alt_kernel}-net-ndiswrapper
 %defattr(644,root,root,755)
 /lib/modules/%{_kernel_ver}/misc/ndiswrapper.ko*
+%endif
