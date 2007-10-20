@@ -108,7 +108,7 @@ cd driver
 %endif
 	KBUILD="%{_kernelsrcdir}"
 
-%build_kernel_modules -m ndiswrapper \
+%build_kernel_modules -c -m ndiswrapper \
 %ifarch %{x8664}
 	CONFIG_X86_64=y \
 %endif
