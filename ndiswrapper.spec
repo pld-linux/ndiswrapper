@@ -97,7 +97,7 @@ Ten pakiet zawiera moduł jądra Linuksa.
 	CONFIG_X86_64=y \
 %endif
 	CC="%{__cc}" \
-	CFLAGS="%{rpmcflags} -Wall -DUTILS_VERSION=\\\"\$(UTILS_VERSION)\\\""
+	CFLAGS="%{rpmcflags} -Wall"
 %endif
 
 %if %{with kernel}
