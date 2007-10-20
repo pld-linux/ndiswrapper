@@ -89,6 +89,7 @@ Ten pakiet zawiera moduł jądra Linuksa.
 %setup -q
 %{__sed} -i -e 's#"loader.h"#"../driver/loader.h"#g' utils/loadndisdriver.c
 %{__sed} -i -e 's#$(KBUILD)/.config#$(KBUILD)/config-%{!?with_dist_kernel:non}dist#g' driver/Makefile
+%{__sed} -i -e 's@KBUILD := $(shell readlink -f /lib/modules/$(KVERS)/source)@@g' driver/Makefile
 
 %build
 %if %{with userspace}
@@ -108,11 +109,11 @@ cd driver
 %endif
 	KBUILD="%{_kernelsrcdir}"
 
-%build_kernel_modules -c -m ndiswrapper \
+export KBUILD="%{_kernelsrcdir}"
+%build_kernel_modules -m ndiswrapper \
 %ifarch %{x8664}
 	CONFIG_X86_64=y \
 %endif
-	KBUILD="%{_kernelsrcdir}" \
 	KVERS="%{_kernel_ver}"
 %endif
 
