@@ -1,3 +1,6 @@
+# TOOD
+# - build time errors that are ignored:
+#   grep: /lib/modules/$(uname -r)/build/include/linux/usb.h: No such file or directory
 #
 # Conditional build:
 %bcond_without	dist_kernel	# without distribution kernel
@@ -19,15 +22,16 @@
 %endif
 
 %define		_rel	56
+%define		pname	ndiswrapper
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
-Name:		ndiswrapper
+Name:		%{pname}%{_alt_kernel}
 Version:	1.15
 Release:	%{_rel}
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
-Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}.tar.gz
+Source0:	http://dl.sourceforge.net/ndiswrapper/%{pname}-%{version}.tar.gz
 # Source0-md5:	0ca5bcab8e9b7b0d40f2e886f1fbaa45
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
@@ -67,7 +71,7 @@ Requires(post,postun):	/sbin/depmod
 %requires_releq_kernel_up
 Requires(postun):	%releq_kernel_up
 %endif
-Requires:	%{name} = %{epoch}:%{version}-%{_rel}
+Requires:	%{pname} = %{epoch}:%{version}-%{_rel}
 Requires:	dev >= 2.7.7-10
 
 %description -n kernel%{_alt_kernel}-net-ndiswrapper
@@ -98,7 +102,7 @@ Requires(post,postun):	/sbin/depmod
 %requires_releq_kernel_smp
 Requires(postun):	%releq_kernel_smp
 %endif
-Requires:	%{name} = %{epoch}:%{version}-%{_rel}
+Requires:	%{pname} = %{epoch}:%{version}-%{_rel}
 Requires:	dev >= 2.7.7-10
 
 %description -n kernel%{_alt_kernel}-smp-net-ndiswrapper
@@ -120,7 +124,7 @@ sterowniki NDIS (API sterowników sieciowych w Windows).
 Ten pakiet zawiera modu³ j±dra Linuksa SMP.
 
 %prep
-%setup -q
+%setup -q -n %{pname}-%{version}
 
 %build
 %if %{with userspace}
