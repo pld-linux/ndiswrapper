@@ -21,7 +21,7 @@
 %undefine	with_userspace
 %endif
 
-%define		_rel	57
+%define		_rel	58
 %define		pname	ndiswrapper
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
