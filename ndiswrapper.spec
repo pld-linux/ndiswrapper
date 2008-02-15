@@ -9,25 +9,20 @@
 %bcond_without	smp		# don't build SMP module
 %bcond_without	up		# don't build UP module
 %bcond_with	verbose		# verbose build (V=1)
-%bcond_with	grsec_kernel	# build for kernel-grsecurity
 
 %if %{without kernel}
 %undefine	with_dist_kernel
-%endif
-%if %{with kernel} && %{with dist_kernel} && %{with grsec_kernel}
-%define	alt_kernel	grsecurity
 %endif
 %if "%{_alt_kernel}" != "%{nil}"
 %undefine	with_userspace
 %endif
 
-%define		_rel	61
 %define		pname	ndiswrapper
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		%{pname}%{_alt_kernel}
 Version:	1.15
-Release:	%{_rel}
+Release:	62
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
@@ -64,14 +59,10 @@ ndiswrappera.
 %package -n kernel%{_alt_kernel}-net-ndiswrapper
 Summary:	Loadable Linux kernel module that "wraps around" NDIS drivers
 Summary(pl):	Modu³ j±dra Linuksa "owijaj±cy" sterowniki NDIS
-Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
+%{?with_dist_kernel:Requires:	kernel%{_alt_kernel}(vermagic) = %{_kernel_ver}}
 Requires(post,postun):	/sbin/depmod
-%if %{with dist_kernel}
-%requires_releq_kernel_up
-Requires(postun):	%releq_kernel_up
-%endif
-Requires:	%{pname} = %{epoch}:%{version}-%{_rel}
+Requires:	%{pname} = %{epoch}:%{version}-%{release}
 Requires:	dev >= 2.7.7-10
 
 %description -n kernel%{_alt_kernel}-net-ndiswrapper
@@ -95,14 +86,10 @@ Ten pakiet zawiera modu³ j±dra Linuksa.
 %package -n kernel%{_alt_kernel}-smp-net-ndiswrapper
 Summary:	Loadable Linux SMP kernel module that "wraps around" NDIS drivers
 Summary(pl):	Modu³ j±dra Linuksa SMP "owijaj±cy" sterowniki NDIS
-Release:	%{_rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
+%{?with_dist_kernel:Requires:	kernel%{_alt_kernel}-smp(vermagic) = %{_kernel_ver}}
 Requires(post,postun):	/sbin/depmod
-%if %{with dist_kernel}
-%requires_releq_kernel_smp
-Requires(postun):	%releq_kernel_smp
-%endif
-Requires:	%{pname} = %{epoch}:%{version}-%{_rel}
+Requires:	%{pname} = %{epoch}:%{version}-%{release}
 Requires:	dev >= 2.7.7-10
 
 %description -n kernel%{_alt_kernel}-smp-net-ndiswrapper
