@@ -22,7 +22,7 @@ Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		%{pname}%{_alt_kernel}
 Version:	1.15
-Release:	62
+Release:	63
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
