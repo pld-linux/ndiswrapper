@@ -22,7 +22,7 @@ Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl):	Narzêdzia "opakowuj±ce" sterowniki NDIS
 Name:		%{pname}%{_alt_kernel}
 Version:	1.15
-Release:	63
+Release:	64
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
@@ -62,7 +62,8 @@ Summary(pl):	Modu³ j±dra Linuksa "owijaj±cy" sterowniki NDIS
 Group:		Base/Kernel
 %{?with_dist_kernel:Requires:	kernel%{_alt_kernel}(vermagic) = %{_kernel_ver}}
 Requires(post,postun):	/sbin/depmod
-Requires:	%{pname} = %{epoch}:%{version}-%{release}
+# loose dep intentional
+Requires:	%{pname} = %{epoch}:%{version}
 Requires:	dev >= 2.7.7-10
 
 %description -n kernel%{_alt_kernel}-net-ndiswrapper
@@ -89,7 +90,8 @@ Summary(pl):	Modu³ j±dra Linuksa SMP "owijaj±cy" sterowniki NDIS
 Group:		Base/Kernel
 %{?with_dist_kernel:Requires:	kernel%{_alt_kernel}-smp(vermagic) = %{_kernel_ver}}
 Requires(post,postun):	/sbin/depmod
-Requires:	%{pname} = %{epoch}:%{version}-%{release}
+# loose dep intentional
+Requires:	%{pname} = %{epoch}:%{version}
 Requires:	dev >= 2.7.7-10
 
 %description -n kernel%{_alt_kernel}-smp-net-ndiswrapper
