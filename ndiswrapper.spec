@@ -153,14 +153,7 @@ install utils/{ndiswrapper,ndiswrapper-buginfo} \
 %endif
 
 %if %{with kernel}
-cd driver
-install -d $RPM_BUILD_ROOT/lib/modules/%{_kernel_ver}{,smp}/misc
-install ndiswrapper-%{?with_dist_kernel:up}%{!?with_dist_kernel:nondist}.ko \
-	$RPM_BUILD_ROOT/lib/modules/%{_kernel_ver}/misc/ndiswrapper.ko
-%if %{with smp} && %{with dist_kernel}
-install ndiswrapper-smp.ko \
-        $RPM_BUILD_ROOT/lib/modules/%{_kernel_ver}smp/misc/ndiswrapper.ko
-%endif
+%install_kernel_modules -m driver/ndiswrapper -d misc
 %endif
 
 %clean
