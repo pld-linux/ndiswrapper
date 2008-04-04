@@ -1,0 +1,104 @@
+--- ndiswrapper-1.15/driver/pe_linker.c~	2006-04-26 22:25:24.000000000 +0200
++++ ndiswrapper-1.15/driver/pe_linker.c	2008-04-04 22:16:09.015234559 +0200
+@@ -23,7 +23,7 @@
+ #include <asm/errno.h>
+ 
+ //#define DEBUGLINKER 2
+-
++#include <asm/cacheflush.h>
+ #include "ntoskernel.h"
+ 
+ #endif
+diff -upr ndiswrapper-1.15/driver/ndis.c ndiswrapper-1.15./driver/ndis.c
+--- ndiswrapper-1.15/driver/ndis.c	2006-04-26 22:25:24.000000000 +0200
++++ ndiswrapper-1.15./driver/ndis.c	2008-04-04 22:08:22.547293705 +0200
+@@ -41,8 +41,11 @@ int ndis_init(void)
+ #endif
+ 	InitializeListHead(&ndis_worker_list);
+ 	nt_spin_lock_init(&ndis_work_list_lock);
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20))
++	INIT_WORK(&ndis_work, ndis_worker);
++#else
+ 	INIT_WORK(&ndis_work, ndis_worker, NULL);
+-
++#endif
+ 	return 0;
+ }
+ 
+@@ -2101,7 +2104,11 @@ NdisMIndicateReceivePacket(struct ndis_m
+ 			    (rx_csum_info->rx.tcp_succeeded ||
+ 			     rx_csum_info->rx.ip_succeeded ||
+ 			     rx_csum_info->rx.udp_succeeded)) {
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20))
++				skb->ip_summed = CHECKSUM_PARTIAL;
++#else
+ 				skb->ip_summed = CHECKSUM_HW;
++#endif
+ 				skb->csum = rx_csum_info->value;
+ 			}
+ 			netif_rx(skb);
+@@ -2354,7 +2361,11 @@ NdisMTransferDataComplete(struct ndis_mi
+ 	if (wnd->rx_csum.ip_csum && rx_csum_info &&
+ 	    (rx_csum_info->rx.tcp_succeeded || rx_csum_info->rx.ip_succeeded ||
+ 	     rx_csum_info->rx.udp_succeeded)) {
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20))
++		skb->ip_summed = CHECKSUM_PARTIAL;
++#else
+ 		skb->ip_summed = CHECKSUM_HW;
++#endif
+ 		skb->csum = rx_csum_info->value;
+ 	}
+ 	netif_rx(skb);
+diff -upr ndiswrapper-1.15/driver/ntoskernel.c ndiswrapper-1.15./driver/ntoskernel.c
+--- ndiswrapper-1.15/driver/ntoskernel.c	2006-04-26 22:25:24.000000000 +0200
++++ ndiswrapper-1.15./driver/ntoskernel.c	2008-04-04 22:08:22.547293705 +0200
+@@ -13,6 +13,7 @@
+  *
+  */
+ 
++#include <asm/highmem.h>
+ #include "ntoskernel.h"
+ #include "ndis.h"
+ #include "usb.h"
+@@ -122,9 +123,13 @@ int ntoskernel_init(void)
+ 	InitializeListHead(&object_list);
+ 	InitializeListHead(&ntos_work_item_list);
+ 
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20))
++	INIT_WORK(&kdpc_work, kdpc_worker);
++	INIT_WORK(&ntos_work_item_work, ntos_work_item_worker);
++#else
+ 	INIT_WORK(&kdpc_work, kdpc_worker, NULL);
+ 	INIT_WORK(&ntos_work_item_work, ntos_work_item_worker, NULL);
+-
++#endif
+ 	nt_spin_lock_init(&timer_lock);
+ 	InitializeListHead(&wrap_timer_list);
+ 
+diff -upr ndiswrapper-1.15/driver/wrapndis.c ndiswrapper-1.15./driver/wrapndis.c
+--- ndiswrapper-1.15/driver/wrapndis.c	2006-04-26 22:25:24.000000000 +0200
++++ ndiswrapper-1.15./driver/wrapndis.c	2008-04-04 22:08:22.547293705 +0200
+@@ -1808,7 +1808,11 @@ static STDCALL NTSTATUS NdisAddDevice(st
+ 	init_waitqueue_head(&wnd->ndis_comm_wq);
+ 	wnd->ndis_comm_done = 0;
+ 	wnd->tx_ok = 0;
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20))
++	INIT_WORK(&wnd->tx_work, tx_worker);
++#else
+ 	INIT_WORK(&wnd->tx_work, tx_worker, wnd);
++#endif
+ 	wnd->tx_ring_start = 0;
+ 	wnd->tx_ring_end = 0;
+ 	wnd->is_tx_ring_full = 0;
+@@ -1828,7 +1832,11 @@ static STDCALL NTSTATUS NdisAddDevice(st
+ 	memset(&wnd->essid, 0, sizeof(wnd->essid));
+ 	memset(&wnd->encr_info, 0, sizeof(wnd->encr_info));
+ 	wnd->infrastructure_mode = Ndis802_11Infrastructure;
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20))
++	INIT_WORK(&wnd->wrap_ndis_worker, wrap_ndis_worker_proc);
++#else
+ 	INIT_WORK(&wnd->wrap_ndis_worker, wrap_ndis_worker_proc, wnd);
++#endif
+ 	wnd->hw_status = 0;
+ 	set_bit(HW_AVAILABLE, &wnd->hw_status);
+ 	if (wd->driver->ndis_driver)
