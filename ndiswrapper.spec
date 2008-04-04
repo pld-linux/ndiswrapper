@@ -4,22 +4,25 @@
 %bcond_without	kernel		# don't build kernel modules
 %bcond_without	userspace	# don't build userspace tools
 %bcond_with	verbose		# verbose build (V=1)
-%bcond_with	grsec_kernel	# build for kernel-grsecurity
-#
-%if %{with kernel} && %{with dist_kernel} && %{with grsec_kernel}
-%define	alt_kernel	grsecurity
+
+%if %{without kernel}
+%undefine	with_dist_kernel
 %endif
-#
-%define		_rel	1
+%if "%{_alt_kernel}" != "%{nil}"
+%undefine	with_userspace
+%endif
+
+%define		rel	1
+%define		pname	ndiswrapper
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl.UTF-8):	Narzędzia "opakowujące" sterowniki NDIS
 Name:		ndiswrapper
 Version:	1.52
-Release:	%{_rel}
+Release:	%{rel}
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
-Source0:	http://dl.sourceforge.net/ndiswrapper/%{name}-%{version}.tar.gz
+Source0:	http://dl.sourceforge.net/ndiswrapper/%{pname}-%{version}.tar.gz
 # Source0-md5:	3ab2aeef398d29df3a40d40fa499405e
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
@@ -56,14 +59,15 @@ ndiswrappera.
 %package -n kernel%{_alt_kernel}-net-ndiswrapper
 Summary:	Loadable Linux kernel module that "wraps around" NDIS drivers
 Summary(pl.UTF-8):	Moduł jądra Linuksa "owijający" sterowniki NDIS
-Release:	%{_rel}@%{_kernel_ver_str}
+Release:	%{rel}@%{_kernel_ver_str}
 Group:		Base/Kernel
 Requires(post,postun):	/sbin/depmod
 %if %{with dist_kernel}
 %requires_releq_kernel
 Requires(postun):	%releq_kernel
 %endif
-Requires:	%{name} = %{epoch}:%{version}-%{_rel}
+# loose dep intentional
+Requires:	%{pname} = %{epoch}:%{version}
 Requires:	dev >= 2.7.7-10
 
 %description -n kernel%{_alt_kernel}-net-ndiswrapper
@@ -85,7 +89,7 @@ sterowniki NDIS (API sterowników sieciowych w Windows).
 Ten pakiet zawiera moduł jądra Linuksa.
 
 %prep
-%setup -q
+%setup -q -n %{pname}-%{version}
 %{__sed} -i -e 's#"loader.h"#"../driver/loader.h"#g' utils/loadndisdriver.c
 %{__sed} -i -e 's#$(KBUILD)/.config#$(KBUILD)/config-%{!?with_dist_kernel:non}dist#g' driver/Makefile
 %{__sed} -i -e 's@KBUILD := $(shell readlink -f /lib/modules/$(KVERS)/source)@@g' driver/Makefile
