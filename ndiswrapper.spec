@@ -1,7 +1,3 @@
-# TOOD
-# - build time errors that are ignored:
-#   grep: /lib/modules/$(uname -r)/build/include/linux/usb.h: No such file or directory
-#
 # Conditional build:
 %bcond_without	dist_kernel	# without distribution kernel
 %bcond_without	kernel		# don't build kernel modules
@@ -31,8 +27,9 @@ Source0:	http://dl.sourceforge.net/ndiswrapper/%{pname}-%{version}.tar.gz
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel%{_alt_kernel}-module-build >= 2.6.8}
-BuildRequires:	rpmbuild(macros) >= 1.217
+BuildRequires:	rpmbuild(macros) >= 1.379
 %endif
+BuildRequires:	sed >= 4.0
 ExclusiveArch:	%{ix86} %{x8664}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
@@ -114,41 +111,32 @@ Ten pakiet zawiera moduł jądra Linuksa SMP.
 
 %prep
 %setup -q -n %{pname}-%{version}
+%{__sed} -i -e 's,CFLAGS = -g,CFLAGS = $(OPTFLAGS),' utils/Makefile
 
 %build
 %if %{with userspace}
 %{__make} -C utils \
 	CC="%{__cc}" \
-	CFLAGS="%{rpmcflags} -Wall -DUTILS_VERSION=\\\"\$(UTILS_VERSION)\\\""
+	OPTFLAGS="%{rpmcflags}"
 %endif
 
 %if %{with kernel}
 cd driver
-# kernel module(s)
-for cfg in %{?with_dist_kernel:%{?with_smp:smp} up}%{!?with_dist_kernel:nondist}; do
-    if [ ! -r "%{_kernelsrcdir}/config-$cfg" ]; then
-	exit 1
-    fi
-    install -d o/include/linux
-    ln -sf %{_kernelsrcdir}/config-$cfg o/.config
-    ln -sf %{_kernelsrcdir}/Module.symvers-$cfg o/Module.symvers
-    ln -sf %{_kernelsrcdir}/include/linux/autoconf-$cfg.h o/include/linux/autoconf.h
-    %{__make} -j1 -C %{_kernelsrcdir} O=$PWD/o prepare scripts
 
-    %{__make} x86_64_stubs gen_exports \
-	KSRC=. \
-	KVERS="%{_kernel_ver}" \
-	%{?x8664:CONFIG_X86_64=y}
-    %{__make} -C %{_kernelsrcdir} clean \
-        RCS_FIND_IGNORE="-name '*.ko' -o" \
-        M=$PWD O=$PWD/o \
-        %{?with_verbose:V=1}
-    %{__make} -C %{_kernelsrcdir} modules \
-        RCS_FIND_IGNORE="-name '*.ko' -o" \
-        M=$PWD O=$PWD/o \
-        %{?with_verbose:V=1}
-     mv ndiswrapper{,-$cfg}.ko
-done
+%{__make} gen_exports \
+%ifarch %{x8664}
+	x86_64_stubs \
+	CONFIG_X86_64=y \
+%endif
+	KBUILD="%{_kernelsrcdir}"
+
+%build_kernel_modules -m ndiswrapper \
+	KBUILD="%{_kernelsrcdir}" \
+%ifarch %{x8664}
+	CONFIG_X86_64=y \
+%endif
+	KVERS="%{_kernel_ver}"
+
 %endif
 
 %install
