@@ -50,12 +50,11 @@
  	netif_rx(skb);
 --- ndiswrapper-1.15/driver/ntoskernel.c	2006-04-26 22:25:24.000000000 +0200
 +++ ndiswrapper-1.15./driver/ntoskernel.c	2008-04-04 22:08:22.547293705 +0200
-@@ -13,6 +13,10 @@
+@@ -13,6 +13,9 @@
   *
   */
  
-+#include <linux/version.h>
-+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20))
++#ifndef CONFIG_X86_64
 +#include <asm/highmem.h>
 +#endif
  #include "ntoskernel.h"
