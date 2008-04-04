@@ -9,10 +9,9 @@
  #include "ntoskernel.h"
  
  #endif
-diff -upr ndiswrapper-1.15/driver/ndis.c ndiswrapper-1.15./driver/ndis.c
 --- ndiswrapper-1.15/driver/ndis.c	2006-04-26 22:25:24.000000000 +0200
 +++ ndiswrapper-1.15./driver/ndis.c	2008-04-04 22:08:22.547293705 +0200
-@@ -41,8 +41,11 @@ int ndis_init(void)
+@@ -41,8 +41,11 @@
  #endif
  	InitializeListHead(&ndis_worker_list);
  	nt_spin_lock_init(&ndis_work_list_lock);
@@ -25,7 +24,7 @@ diff -upr ndiswrapper-1.15/driver/ndis.c ndiswrapper-1.15./driver/ndis.c
  	return 0;
  }
  
-@@ -2101,7 +2104,11 @@ NdisMIndicateReceivePacket(struct ndis_m
+@@ -2101,7 +2104,11 @@
  			    (rx_csum_info->rx.tcp_succeeded ||
  			     rx_csum_info->rx.ip_succeeded ||
  			     rx_csum_info->rx.udp_succeeded)) {
@@ -37,7 +36,7 @@ diff -upr ndiswrapper-1.15/driver/ndis.c ndiswrapper-1.15./driver/ndis.c
  				skb->csum = rx_csum_info->value;
  			}
  			netif_rx(skb);
-@@ -2354,7 +2361,11 @@ NdisMTransferDataComplete(struct ndis_mi
+@@ -2354,7 +2361,11 @@
  	if (wnd->rx_csum.ip_csum && rx_csum_info &&
  	    (rx_csum_info->rx.tcp_succeeded || rx_csum_info->rx.ip_succeeded ||
  	     rx_csum_info->rx.udp_succeeded)) {
@@ -49,18 +48,20 @@ diff -upr ndiswrapper-1.15/driver/ndis.c ndiswrapper-1.15./driver/ndis.c
  		skb->csum = rx_csum_info->value;
  	}
  	netif_rx(skb);
-diff -upr ndiswrapper-1.15/driver/ntoskernel.c ndiswrapper-1.15./driver/ntoskernel.c
 --- ndiswrapper-1.15/driver/ntoskernel.c	2006-04-26 22:25:24.000000000 +0200
 +++ ndiswrapper-1.15./driver/ntoskernel.c	2008-04-04 22:08:22.547293705 +0200
-@@ -13,6 +13,7 @@
+@@ -13,6 +13,10 @@
   *
   */
  
++#include <linux/version.h>
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20))
 +#include <asm/highmem.h>
++#endif
  #include "ntoskernel.h"
  #include "ndis.h"
  #include "usb.h"
-@@ -122,9 +123,13 @@ int ntoskernel_init(void)
+@@ -122,9 +126,13 @@
  	InitializeListHead(&object_list);
  	InitializeListHead(&ntos_work_item_list);
  
@@ -75,10 +76,9 @@ diff -upr ndiswrapper-1.15/driver/ntoskernel.c ndiswrapper-1.15./driver/ntoskern
  	nt_spin_lock_init(&timer_lock);
  	InitializeListHead(&wrap_timer_list);
  
-diff -upr ndiswrapper-1.15/driver/wrapndis.c ndiswrapper-1.15./driver/wrapndis.c
 --- ndiswrapper-1.15/driver/wrapndis.c	2006-04-26 22:25:24.000000000 +0200
 +++ ndiswrapper-1.15./driver/wrapndis.c	2008-04-04 22:08:22.547293705 +0200
-@@ -1808,7 +1808,11 @@ static STDCALL NTSTATUS NdisAddDevice(st
+@@ -1808,7 +1808,11 @@
  	init_waitqueue_head(&wnd->ndis_comm_wq);
  	wnd->ndis_comm_done = 0;
  	wnd->tx_ok = 0;
@@ -90,7 +90,7 @@ diff -upr ndiswrapper-1.15/driver/wrapndis.c ndiswrapper-1.15./driver/wrapndis.c
  	wnd->tx_ring_start = 0;
  	wnd->tx_ring_end = 0;
  	wnd->is_tx_ring_full = 0;
-@@ -1828,7 +1832,11 @@ static STDCALL NTSTATUS NdisAddDevice(st
+@@ -1828,7 +1832,11 @@
  	memset(&wnd->essid, 0, sizeof(wnd->essid));
  	memset(&wnd->encr_info, 0, sizeof(wnd->encr_info));
  	wnd->infrastructure_mode = Ndis802_11Infrastructure;
