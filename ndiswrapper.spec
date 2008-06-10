@@ -24,7 +24,7 @@ License:	GPL
 Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/ndiswrapper/%{pname}-%{version}.tar.gz
 # Source0-md5:	0ca5bcab8e9b7b0d40f2e886f1fbaa45
-Patch0:		%{name}-2.6.20.patch
+Patch0:		%{pname}-2.6.20.patch
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel%{_alt_kernel}-module-build >= 2.6.8}
