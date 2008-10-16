@@ -12,13 +12,18 @@
 %if "%{_alt_kernel}" != "%{nil}"
 %undefine	with_userspace
 %endif
+%if %{without userspace}
+# nothing to be placed to debuginfo package
+%define		_enable_debug_packages	0
+%endif
 
+%define		rel	67
 %define		pname	ndiswrapper
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl.UTF-8):	Narzędzia "opakowujące" sterowniki NDIS
 Name:		%{pname}%{_alt_kernel}
 Version:	1.15
-Release:	64
+Release:	%{rel}
 Epoch:		1
 License:	GPL
 Group:		Base/Kernel
@@ -28,7 +33,7 @@ Patch0:		%{pname}-2.6.20.patch
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %{?with_dist_kernel:BuildRequires:	kernel%{_alt_kernel}-module-build >= 2.6.8}
-BuildRequires:	rpmbuild(macros) >= 1.379
+BuildRequires:	rpmbuild(macros) >= 1.452
 %endif
 BuildRequires:	sed >= 4.0
 ExclusiveArch:	%{ix86} %{x8664}
@@ -57,6 +62,7 @@ ndiswrappera.
 %package -n kernel%{_alt_kernel}-net-ndiswrapper
 Summary:	Loadable Linux kernel module that "wraps around" NDIS drivers
 Summary(pl.UTF-8):	Moduł jądra Linuksa "owijający" sterowniki NDIS
+Release:	%{rel}@%{_kernel_vermagic}
 Group:		Base/Kernel
 Requires(post,postun):	/sbin/depmod
 %{?with_dist_kernel:Requires:	kernel%{_alt_kernel}(vermagic) = %{_kernel_ver}}
@@ -85,6 +91,7 @@ Ten pakiet zawiera moduł jądra Linuksa.
 %package -n kernel%{_alt_kernel}-smp-net-ndiswrapper
 Summary:	Loadable Linux SMP kernel module that "wraps around" NDIS drivers
 Summary(pl.UTF-8):	Moduł jądra Linuksa SMP "owijający" sterowniki NDIS
+Release:	%{rel}@%{_kernel_vermagic}
 Group:		Base/Kernel
 Requires(post,postun):	/sbin/depmod
 %{?with_dist_kernel:Requires:	kernel%{_alt_kernel}-smp(vermagic) = %{_kernel_ver}}
