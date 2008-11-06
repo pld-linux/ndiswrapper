@@ -24,12 +24,13 @@ License:	GPL
 Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/ndiswrapper/%{pname}-%{version}.tar.gz
 # Source0-md5:	3ab2aeef398d29df3a40d40fa499405e
+Patch0:		ndiswrapper-2.6.27.patch
 URL:		http://ndiswrapper.sourceforge.net/
 %if %{with kernel}
 %ifarch %{ix86}
 BuildRequires:	gcc >= 5:3.4
 %endif
-%{?with_dist_kernel:BuildRequires:	kernel%{_alt_kernel}-module-build >= 3:2.6.20.2}
+%{?with_dist_kernel:BuildRequires:	kernel%{_alt_kernel}-module-build >= 3:2.6.27}
 BuildRequires:	rpmbuild(macros) >= 1.379
 %endif
 BuildRequires:	sed >= 4.0
@@ -90,6 +91,7 @@ Ten pakiet zawiera moduł jądra Linuksa.
 
 %prep
 %setup -q -n %{pname}-%{version}
+%patch0 -p1
 %{__sed} -i -e 's#"loader.h"#"../driver/loader.h"#g' utils/loadndisdriver.c
 %{__sed} -i -e 's#$(KBUILD)/.config#$(KBUILD)/config-%{!?with_dist_kernel:non}dist#g' driver/Makefile
 %{__sed} -i -e 's@KBUILD := $(shell readlink -f /lib/modules/$(KVERS)/source)@@g' driver/Makefile
