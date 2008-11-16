@@ -12,7 +12,7 @@
 %undefine	with_userspace
 %endif
 
-%define		rel	1
+%define		rel	2
 %define		pname	ndiswrapper
 Summary:	Tools to "wrap around" NDIS drivers
 Summary(pl.UTF-8):	Narzędzia "opakowujące" sterowniki NDIS
@@ -25,10 +25,8 @@ Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/ndiswrapper/%{pname}-%{version}.tar.gz
 # Source0-md5:	3ab2aeef398d29df3a40d40fa499405e
 Patch0:		ndiswrapper-2.6.27.patch
+Patch1:		ndiswrapper-CVE-2008-4395.patch
 URL:		http://ndiswrapper.sourceforge.net/
-# Patch is available:
-# http://securitytracker.com/alerts/2008/Nov/1021142.html
-BuildRequires:	security(CVE-2008-4395)
 %if %{with kernel}
 %ifarch %{ix86}
 BuildRequires:	gcc >= 5:3.4
@@ -95,6 +93,7 @@ Ten pakiet zawiera moduł jądra Linuksa.
 %prep
 %setup -q -n %{pname}-%{version}
 %patch0 -p1
+%patch1 -p1
 %{__sed} -i -e 's#"loader.h"#"../driver/loader.h"#g' utils/loadndisdriver.c
 %{__sed} -i -e 's#$(KBUILD)/.config#$(KBUILD)/config-%{!?with_dist_kernel:non}dist#g' driver/Makefile
 %{__sed} -i -e 's@KBUILD := $(shell readlink -f /lib/modules/$(KVERS)/source)@@g' driver/Makefile
