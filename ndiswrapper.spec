@@ -19,7 +19,7 @@ Summary(pl.UTF-8):	Narzędzia "opakowujące" sterowniki NDIS
 Name:		ndiswrapper
 Version:	1.52
 Release:	%{rel}
-Epoch:		1
+Epoch:		2
 License:	GPL
 Group:		Base/Kernel
 Source0:	http://dl.sourceforge.net/ndiswrapper/%{pname}-%{version}.tar.gz
